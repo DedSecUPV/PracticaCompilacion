@@ -16,42 +16,54 @@
 %option nounput
 
 %%
-programa																										TOKEN(RPROGRAM) ;
+programa														TOKEN(RPROGRAM) ;
+procedimiento												TOKEN(TPROC);
+variables														TOKEN(TVAR);
 
-"*"																														TOKEN(TMUL);
+entero															TOKEN(TENTERO);
+real																TOKEN(TREAL);
 
-"="																														TOKEN(TASSIG);
+"+"																	TOKEN(TSUM);
+"-"																	TOKEN(TRES);
+"*"																	TOKEN(TMUL);
+"/"																	TOKEN(TDIV);
 
-";"																														TOKEN(TSEMIC);
+"="																	TOKEN(TASSIG);
+">"																	TOKEN(TMENOR);
+"<"																	TOKEN(TMAYOR);
 
-"{"																														TOKEN(TKOPEN);
-"}"																														TOKEN(TKCLOSE);
+":"																	TOKEN(TDOSP);
+";"																	TOKEN(TSEMIC);
+","																	TOKEN(TCOMA);
 
-"("																														TOKEN(TPOPEN);
-")"																														TOKEN(TPCLOSE);
+"{"																	TOKEN(TKOPEN);
+"}"																	TOKEN(TKCLOSE);
 
-in																														TOKEN(TIN);
-out																														TOKEN(TOUT);
-in out																												TOKEN(TINOUT);
+"("																	TOKEN(TPOPEN);
+")"																	TOKEN(TPCLOSE);
 
-si																														TOKEN(TSI);
-entonces																											TOKEN(TENTONCES);
-repetir siempre																							TOKEN(TREPSIEMP);
-repetir																												TOKEN(TREPETIR);
-hasta																													TOKEN(THASTA);
-salir si																												TOKEN(TSALSI);
+in																	TOKEN(TIN);
+out																	TOKEN(TOUT);
+"in out"															TOKEN(TINOUT);
 
-leer																													TOKEN(TLEER);
-escribir_linea																								TOKEN(TESCRIBIR);
+si																	TOKEN(TSI);
+entonces														TOKEN(TENTONCES);
+"repetir siempre"										TOKEN(TREPSIEMP);
+repetir															TOKEN(TREPETIR);
+hasta																TOKEN(THASTA);
+"salir si"														TOKEN(TSALSI);
 
-\/\/.+\n																											;
-\(\*+([^*]|\*[^)])*\*+\)																			;
+leer																	TOKEN(TLEER);
+escribir_linea												TOKEN(TESCRIBIR);
 
-[ \t\n]																												;
+\/\/.+\n															;
+\(\*+([^*]|\*[^)])*\*+\)								;
 
-[a-zA-Z](\_?[a-zA-Z0-9])*																		TOKEN(TIDENTIFIER); 
-[0-9]+\.[0-9]+([eE][\+\-]?[0-9]+)?															TOKEN(TDOUBLE);
-[0-9]+ 																												TOKEN(TINTEGER);
+[ \t\n]																;
 
-.																															{ cout << "Token desconocido: " << yytext << endl; yyterminate();}
+[a-zA-Z](\_?[a-zA-Z0-9])*							TOKEN(TIDENTIFIER); 
+[0-9]+\.[0-9]+([eE][\+\-]?[0-9]+)?				TOKEN(TDOUBLE);
+[0-9]+ 															TOKEN(TINTEGER);
+
+.																		{ cout << "Token desconocido: " << yytext << endl; yyterminate();}
 %%

@@ -2,6 +2,7 @@
 parser
 parser.cpp
 parser.hpp
+tokens.cpp
 
 # Compiled Object files
 *.slo
