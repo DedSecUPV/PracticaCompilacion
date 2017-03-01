@@ -1,4 +1,4 @@
-# Práctica Compilación - DeadSec
+# Práctica Compilación - DedSec
 ### Autores:
 ```
 Iker García
