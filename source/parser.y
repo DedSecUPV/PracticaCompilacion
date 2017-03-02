@@ -53,6 +53,10 @@
 %type <str> variable
 %type <str> expresion
 
+%left TSUM TRES
+%left TMUL TDIV
+%nonassoc TMENOR TMAYOR TEQ TGTH TLTH TNEQ
+
 %start programa
 
 %%

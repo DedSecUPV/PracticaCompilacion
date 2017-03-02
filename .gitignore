@@ -33,3 +33,4 @@ tokens.cpp
 *.exe
 *.out
 *.app
+*.output
