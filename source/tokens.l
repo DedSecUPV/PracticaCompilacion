@@ -16,59 +16,59 @@
 %option nounput
 
 %%
-programa														TOKEN(RPROGRAM) ;
-procedimiento												TOKEN(TPROC);
-variables														TOKEN(TVAR);
+programa										TOKEN(RPROGRAM) ;
+procedimiento									TOKEN(TPROC);
+variables										TOKEN(TVAR);
 
-entero															TOKEN(TENTERO);
-real																TOKEN(TREAL);
+entero											TOKEN(TENTERO);
+real											TOKEN(TREAL);
 
-"+"																	TOKEN(TSUM);
-"-"																	TOKEN(TRES);
-"*"																	TOKEN(TMUL);
-"/"																	TOKEN(TDIV);
+"+"												TOKEN(TSUM);
+"-"												TOKEN(TRES);
+"*"												TOKEN(TMUL);
+"/"												TOKEN(TDIV);
 
-"="																	TOKEN(TASSIG);
-">"																	TOKEN(TMENOR);
-"<"																	TOKEN(TMAYOR);
+"="												TOKEN(TASSIG);
+">"												TOKEN(TMENOR);
+"<"												TOKEN(TMAYOR);
 
-"=="																TOKEN(TEQ);
-">="																TOKEN(TGTH);
-"<="																TOKEN(TLTH);
-"/="																TOKEN(TNEQ);
+"=="											TOKEN(TEQ);
+">="											TOKEN(TGTH);
+"<="											TOKEN(TLTH);
+"/="											TOKEN(TNEQ);
 
-":"																	TOKEN(TDOSP);
-";"																	TOKEN(TSEMIC);
-","																	TOKEN(TCOMA);
+":"												TOKEN(TDOSP);
+";"												TOKEN(TSEMIC);
+","												TOKEN(TCOMA);
 
-"{"																	TOKEN(TKOPEN);
-"}"																	TOKEN(TKCLOSE);
+"{"												TOKEN(TKOPEN);
+"}"												TOKEN(TKCLOSE);
 
-"("																	TOKEN(TPOPEN);
-")"																	TOKEN(TPCLOSE);
+"("												TOKEN(TPOPEN);
+")"												TOKEN(TPCLOSE);
 
-in																	TOKEN(TIN);
-out																	TOKEN(TOUT);
-"in out"															TOKEN(TINOUT);
+in												TOKEN(TIN);
+out												TOKEN(TOUT);
+"in out"										TOKEN(TINOUT);
 
-si																	TOKEN(TSI);
-entonces														TOKEN(TENTONCES);
-"repetir siempre"										TOKEN(TREPSIEMP);
-repetir															TOKEN(TREPETIR);
-hasta																TOKEN(THASTA);
-"salir si"														TOKEN(TSALSI);
+si												TOKEN(TSI);
+entonces										TOKEN(TENTONCES);
+"repetir siempre"								TOKEN(TREPSIEMP);
+repetir											TOKEN(TREPETIR);
+hasta											TOKEN(THASTA);
+"salir si"										TOKEN(TSALSI);
 
-leer																	TOKEN(TLEER);
-escribir_linea												TOKEN(TESCRIBIR);
+leer											TOKEN(TLEER);
+escribir_linea									TOKEN(TESCRIBIR);
 
-\/\/.+\n															;
-\(\*+([^*]|\*[^)])*\*+\)								;
+\/\/.+\n										;
+\(\*+([^*]|\*[^)])*\*+\)						;
 
-[ \t\n]																;
+[ \t\n]											;
 
-[a-zA-Z](\_?[a-zA-Z0-9])*							TOKEN(TIDENTIFIER); 
+[a-zA-Z](\_?[a-zA-Z0-9])*						TOKEN(TIDENTIFIER);
 [0-9]+\.[0-9]+([eE][\+\-]?[0-9]+)?				TOKEN(TDOUBLE);
-[0-9]+ 															TOKEN(TINTEGER);
+[0-9]+ 											TOKEN(TINTEGER);
 
-.																		{ cout << "*Token desconocido en línea " << yylineno << endl;}
+.												{ cout << "*Token desconocido en línea " << yylineno << endl;}
 %%

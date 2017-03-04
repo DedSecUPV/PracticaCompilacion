@@ -1,6 +1,7 @@
 CFLAGS=-Wall
 
 all: parser prueba
+	cat dedsec.bin
 
 clean:
 	rm parser.cpp parser.hpp parser tokens.cpp *~
