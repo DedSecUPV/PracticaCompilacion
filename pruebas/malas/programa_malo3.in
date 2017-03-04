@@ -1,0 +1,12 @@
+programa malo
+(**** esto es un comentario bueno  **)
+variables a,b,c : real;
+procedimiento malo (z,h : in nada)
+{
+}
+{
+leer(a);
+leer(b);
+c = a*b;
+escribir_linea(c);
+//Aquí no va a acabar bien

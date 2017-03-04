@@ -1,0 +1,20 @@
+programa ejemplo2
+variables a,b,c : entero;
+variables d : real;
+(* esto es un comentario *)
+//No hay procedimiento extra
+{
+leer(a); leer(b);
+d= 1/b;
+e= 1/a;
+c= c*(c*d)+e;
+salir si (a < b);
+si (a == b) entonces
+{
+repetir siempre
+{
+escribir_linea(a);
+}
+}
+escribir_linea(c*c);
+}

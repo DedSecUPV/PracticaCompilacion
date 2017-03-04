@@ -1,0 +1,31 @@
+programa ejemplo2
+variables a,b,c : entero;
+variables d : real;
+(* esto es un comentario *)
+procedimiento cosas (a, z : out entero)
+{
+leer(a);
+leer(z);
+}
+{
+leer(a); leer(b);
+d= 1/b;
+e= 1/a;
+c= c*(c*d)+e;
+salir si (a < b);
+si (a >= b) entonces
+{
+si (a <= b) entonces
+{
+si (a /= c) entonces
+{
+repetir siempre
+{
+escribir_linea(a);
+salir si(a> d);
+}
+}
+}
+}
+escribir_linea(c*c);
+}

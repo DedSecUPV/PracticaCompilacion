@@ -10,7 +10,7 @@
    extern char *yytext;
    string tab = "\t" ;
    void yyerror (const char *msg) {
-     printf("line %d: %s at '%s'\n", yylineno, msg, yytext) ;
+     printf("Línea %d: %s en '%s'\n", yylineno, msg, yytext);
    }
 
 %}

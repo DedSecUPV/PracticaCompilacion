@@ -70,5 +70,5 @@ escribir_linea												TOKEN(TESCRIBIR);
 [0-9]+\.[0-9]+([eE][\+\-]?[0-9]+)?				TOKEN(TDOUBLE);
 [0-9]+ 															TOKEN(TINTEGER);
 
-.																		{ cout << "Token desconocido: " << yytext << endl; yyterminate();}
+.																		{ cout << "*Token desconocido en línea " << yylineno << endl;}
 %%
