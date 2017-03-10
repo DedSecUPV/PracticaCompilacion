@@ -61,8 +61,8 @@ hasta											TOKEN(THASTA);
 leer											TOKEN(TLEER);
 escribir_linea									TOKEN(TESCRIBIR);
 
-\/\/.+\n										;
-\(\*+([^*]|\*[^)])*\*+\)						;
+\/\/.+\n															;
+\(\*+([^*]|\*+[^)*])*\*+\)							;
 
 [ \t\n]											;
 
