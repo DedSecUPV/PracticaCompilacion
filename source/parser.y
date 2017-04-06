@@ -75,68 +75,70 @@ Codigo codigo;
 
 %%
 
-programa : RPROGRAM  TIDENTIFIER
+programa : RPROGRAM  TIDENTIFIER {codigo.anadirInstruccion("prog "+$2);}
 				declaraciones
 				decl_de_subprogs
 				TKOPEN
 				lista_de_sentencias
 				TKCLOSE
-				{ cout << "\n<programa>\n" << *$1 + " " + *$2 + "\n  <declaraciones>\n" + *$3 + "\n  <\\declaraciones>\n" + "\n  <decl_de_subprogs>\n" +*$4 + "\n  <\\decl_de_subprogs>\n" + *$5 + "\n  <lista_de_sentencias>\n" + *$6 +  "\n  <\\lista_de_sentencias>\n" + *$7 + "\n<\\programa>\n" << endl ;}
+                {codigo.anadirInstruccion("halt");}
 				;
 
-declaraciones: {} {$$ = new string; *$$ = "";} 
-						| TVAR lista_de_ident TDOSP tipo TSEMIC declaraciones 
-						{ $$ = new string; *$$= "\n    <declaración>\n     " + *$1 + " " + *$2 + " " + *$3 + " " + *$4 + " " + *$5 + " " + "\n    <\\declaración>\n" + *$6;}
-						;
+declaraciones: {} 
+			| TVAR lista_de_ident TDOSP tipo TSEMIC 
+            {codigo.anadirDeclaraciones($2, $4);}
+            declaraciones 
+			;
 
 lista_de_ident: TIDENTIFIER resto_lista_id
-					{ $$ = new string; *$$= "<lista_de_ident> " + *$1 + *$2 + " <\\lista_de_ident>";}
-						;
+			{$$ = new vector<string>;
+            $$->push_back(*$1);}
+			;
 
-resto_lista_id: {} {$$ = new string; *$$ = "";}
-						| TCOMA TIDENTIFIER resto_lista_id
-						{ $$ = new string; *$$= "" + *$1 + " " + *$2 + *$3;}
-						;
+resto_lista_id: {} {$$ = new vector<string>;}
+			| TCOMA TIDENTIFIER resto_lista_id
+			{$$ = $3; $$->push_back($2);}
+			;
 
-tipo: TENTERO
-		| TREAL
-		;
+tipo: TENTERO {$$ = "int";}
+	| TREAL {$$ = "real";}
+	;
 
-decl_de_subprogs: {} {$$ = new string; *$$ = "";}
-							| decl_de_subprograma decl_de_subprogs
-							{ $$ = new string; *$$= "\n    <declaración_de_subprograma>\n" + *$1 + tab + "\n    <\\declaración_de_subprograma>\n" + *$2;}
-							;
+decl_de_subprogs: {}
+				| decl_de_subprograma decl_de_subprogs
+				;
 
-decl_de_subprograma: TPROC TIDENTIFIER
-									argumentos
-									declaraciones
-									TKOPEN
-									lista_de_sentencias
-									TKCLOSE
-					{ $$ = new string; *$$= "\n     <subprograma>\n" +  *$1 + " " + *$2 + " " + *$3 + " \n      <declaraciones>\n" + *$4 + "\n      <\\declaraciones>\n" + *$5 + "\n      <lista_de_sentencias>\n" + *$6 + "\n      <\\lista_de_sentencias>\n" + *$7 + "\n     <\\subprograma>\n";}
-									;
-
-argumentos: {} {$$ = new string; *$$ = "";}
-						| TPOPEN lista_de_param TPCLOSE
-						{ $$ = new string; *$$= "<argumentos>" + *$1 + *$2 + *$3 + "<\\argumentos>\n";}
-						;
-
-lista_de_param: lista_de_ident TDOSP clase_par tipo resto_lis_de_param
-					{ $$ = new string; *$$= "" + *$1 + *$2 + " " + *$3 + " " + *$4 + " " + *$5;}
-							;
-
-clase_par: TIN | TOUT | TINOUT
+decl_de_subprograma: TPROC TIDENTIFIER {codigo.anadirInstruccion("proc "+$2);}
+					argumentos
+					declaraciones
+					TKOPEN
+					lista_de_sentencias
+					TKCLOSE
+					{codigo.anadirInstruccion("endproc");}
 					;
 
-resto_lis_de_param: {} {$$ = new string; *$$ = "";}
-									| TSEMIC lista_de_ident TDOSP clase_par tipo resto_lis_de_param
-									{ $$ = new string; *$$= "" + *$1 + " " + *$2 + " " + *$3 + " " + *$4 + " " + *$5;}
-									;
+argumentos: {}
+			| TPOPEN lista_de_param TPCLOSE
+			;
 
-lista_de_sentencias: {} {$$ = new string; *$$ = "";}
-									| sentencia lista_de_sentencias
-									{ $$ = new string; *$$= "\n     <sentencia>\n      " + *$1 + " " + "\n     <\\sentencia>\n"  + *$2;}
-									;
+lista_de_param: lista_de_ident TDOSP clase_par tipo {codigo.anadirParametros($1, $3, $4);}
+                resto_lis_de_param
+				;
+
+clase_par: TIN {$$ = "in";}
+        | TOUT {$$ = "out";}
+        | TINOUT {$$ = "in out";}
+		;
+
+resto_lis_de_param: {} 
+				| TSEMIC lista_de_ident TDOSP clase_par tipo {codigo.anadirParametros($2, $4, $5);}
+                resto_lis_de_param
+				;
+
+lista_de_sentencias: {} {$$ = new vector<int>;}
+				| sentencia lista_de_sentencias
+				{$$ = unir($1, $2);}
+				;
 
 sentencia: variable TASSIG expresion TSEMIC {$$ = new string; *$$ = "     " + *$1 + " " + *$2 + " " + *$3 + " " + *$4;}
 				| TSI expresion TENTONCES TKOPEN lista_de_sentencias TKCLOSE {$$ = new string; *$$ = "     " + *$1 + " " + *$2 + " " + *$3 + " " + *$4 + " " + *$5 + " " + *$6;}

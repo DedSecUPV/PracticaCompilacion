@@ -38,6 +38,16 @@ string Codigo::nuevoId() {
 
 void Codigo::anadirInstruccion(const string &instruccion) {
   stringstream cadena;
+  cadena << siguienteInstruccion() << ": " << instruccion + ";";
+  instrucciones.push_back(cadena.str());
+}
+
+/*********************/
+/* anadirGoto */
+/*********************/
+
+void Codigo::anadirGoto(const string &instruccion) {
+  stringstream cadena;
   cadena << siguienteInstruccion() << ": " << instruccion;
   instrucciones.push_back(cadena.str());
 }
