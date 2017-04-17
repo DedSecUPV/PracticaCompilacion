@@ -1,10 +1,12 @@
 %option yylineno 
+%option nounput
 
 %{
  #include <string>
  #include <iostream>
  #include <vector>
  using namespace std ;
+ #include "Auxiliar.hpp"
  #include "parser.hpp" 
 
  #define TOKEN(t) yylval.str = new std::string(yytext, yyleng) ; return t 
@@ -12,8 +14,6 @@
  extern "C" int yywrap() { return(1) ; }  
 
 %}
-
-%option nounput
 
 %%
 programa										TOKEN(RPROGRAM) ;

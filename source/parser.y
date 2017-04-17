@@ -1,9 +1,12 @@
+%error-verbose
+
 %{
    #include <stdio.h>
    #include <iostream>
    #include <vector>
    #include <string>
-   using namespace std; 
+   using namespace std;
+    
 
    extern int yylex();
    extern int yylineno;
@@ -15,7 +18,6 @@
 
 #include "Codigo.hpp"
 #include "Auxiliar.hpp"
-
 
 expresionstruct makecomparison(std::string &s1, std::string &s2, std::string &s3) ;
 expresionstruct makearithmetic(std::string &s1, std::string &s2, std::string &s3) ;
@@ -53,19 +55,20 @@ Codigo codigo;
 
 %type <str> programa
 %type <str> declaraciones
-%type <str> lista_de_ident
-%type <str> resto_lista_id
+%type <list> lista_de_ident
+%type <list> resto_lista_id
 %type <str> tipo
 %type <str> decl_de_subprogs
 %type <str> decl_de_subprograma
 %type <str> argumentos
-%type <str> lista_de_param
+%type <list> lista_de_param
 %type <str> clase_par
 %type <str> resto_lis_de_param
-%type <str> lista_de_sentencias
-%type <str> sentencia
+%type <numlist> lista_de_sentencias
+%type <numlist> sentencia
 %type <str> variable
-%type <str> expresion
+%type <expr> expresion
+%type <number> M
 
 %nonassoc TMENOR TMAYOR TEQ TGTH TLTH TNEQ
 %left TSUM TRES
@@ -75,40 +78,40 @@ Codigo codigo;
 
 %%
 
-programa : RPROGRAM  TIDENTIFIER {codigo.anadirInstruccion("prog "+$2);}
+programa: RPROGRAM  TIDENTIFIER {codigo.anadirInstruccion("prog " + *$2);}
 				declaraciones
 				decl_de_subprogs
 				TKOPEN
 				lista_de_sentencias
 				TKCLOSE
-                {codigo.anadirInstruccion("halt");}
+                {codigo.anadirInstruccion("halt"); codigo.escribir();}
 				;
 
 declaraciones: {} 
 			| TVAR lista_de_ident TDOSP tipo TSEMIC 
-            {codigo.anadirDeclaraciones($2, $4);}
-            declaraciones 
+            {codigo.anadirDeclaraciones(*$2, *$4); delete $2; delete $4;} 
+			declaraciones 
 			;
 
 lista_de_ident: TIDENTIFIER resto_lista_id
-			{$$ = new vector<string>;
+			{$$ = $2;
             $$->push_back(*$1);}
 			;
 
 resto_lista_id: {} {$$ = new vector<string>;}
 			| TCOMA TIDENTIFIER resto_lista_id
-			{$$ = $3; $$->push_back($2);}
+			{ $$ = $3; $$->push_back(*$2); }
 			;
 
-tipo: TENTERO {$$ = "int";}
-	| TREAL {$$ = "real";}
+tipo: TENTERO {$$ = new string; *$$ = "int";}
+	| TREAL {$$ = new string; *$$ = "real";}
 	;
 
 decl_de_subprogs: {}
 				| decl_de_subprograma decl_de_subprogs
 				;
 
-decl_de_subprograma: TPROC TIDENTIFIER {codigo.anadirInstruccion("proc "+$2);}
+decl_de_subprograma: TPROC TIDENTIFIER {codigo.anadirInstruccion("proc "+*$2);}
 					argumentos
 					declaraciones
 					TKOPEN
@@ -121,69 +124,142 @@ argumentos: {}
 			| TPOPEN lista_de_param TPCLOSE
 			;
 
-lista_de_param: lista_de_ident TDOSP clase_par tipo {codigo.anadirParametros($1, $3, $4);}
-                resto_lis_de_param
+lista_de_param: lista_de_ident TDOSP clase_par tipo 
+				{codigo.anadirParametros(*$1, *$3, *$4);
+				delete $1; delete $3; delete $4;} 
+				resto_lis_de_param
 				;
 
-clase_par: TIN {$$ = "in";}
-        | TOUT {$$ = "out";}
-        | TINOUT {$$ = "in out";}
+clase_par: TIN {$$ = new string; *$$ = "in";}
+        | TOUT {$$ = new string; *$$ = "out";}
+        | TINOUT {$$ = new string; *$$ = "in out";}
 		;
 
 resto_lis_de_param: {} 
-				| TSEMIC lista_de_ident TDOSP clase_par tipo {codigo.anadirParametros($2, $4, $5);}
+				| TSEMIC lista_de_ident TDOSP clase_par tipo {codigo.anadirParametros(*$2, *$4, *$5);}
                 resto_lis_de_param
 				;
 
 lista_de_sentencias: {} {$$ = new vector<int>;}
 				| sentencia lista_de_sentencias
-				{$$ = unir($1, $2);}
+				{$$ = unir(*$1, *$2);
+				delete $1;
+				delete $2;}
 				;
 
-sentencia: variable TASSIG expresion TSEMIC {$$ = new string; *$$ = "     " + *$1 + " " + *$2 + " " + *$3 + " " + *$4;}
-				| TSI expresion TENTONCES TKOPEN lista_de_sentencias TKCLOSE {$$ = new string; *$$ = "     " + *$1 + " " + *$2 + " " + *$3 + " " + *$4 + " " + *$5 + " " + *$6;}
-				| TREPETIR TKOPEN lista_de_sentencias TKCLOSE THASTA expresion TSEMIC {$$ = new string; *$$ = "     " + *$1 + " " + *$2 + " " + *$3 + " " + *$4 + " " + *$5 + " " + *$6 + " " + *$7;}
-				| TREPSIEMP TKOPEN lista_de_sentencias TKCLOSE {$$ = new string; *$$ = "     " + *$1 + " " + *$2 + " " + *$3 + " " + *$4;}
-				| TSALSI expresion TSEMIC {$$ = new string; *$$ = "     " + *$1 + " " + *$2 + " " + *$3;}
-				| TLEER TPOPEN variable TPCLOSE TSEMIC {$$ = new string; *$$ = "     " + *$1 + " " + *$2 + " " + *$3 + " " + *$4 + " " + *$5;}
-				| TESCRIBIR TPOPEN expresion TPCLOSE TSEMIC {$$ = new string; *$$ = "     " + *$1 + " " + *$2 + " " + *$3 + " " + *$4 + " " + *$5;}
+M: {$$ = codigo.obtenRef();};
+
+sentencia: variable TASSIG expresion TSEMIC {codigo.anadirInstruccion(*$1+":="+$3->str); $$ = new vector<int>;}
+
+				| TSI expresion TENTONCES M TKOPEN lista_de_sentencias TKCLOSE M 
+				{codigo.completarInstrucciones($2->trues, $4);
+				codigo.completarInstrucciones($2->falses, $8);
+				delete $2;
+				$$ = $6;}
+
+				| TREPETIR M TKOPEN lista_de_sentencias TKCLOSE THASTA expresion TSEMIC M
+				{codigo.completarInstrucciones($7->trues, $2);
+				codigo.completarInstrucciones($7->falses, $9);
+				codigo.completarInstrucciones(*$4, $9);
+				$$ = new vector<int>;
+				delete $7;}
+				
+				| M TREPSIEMP TKOPEN lista_de_sentencias TKCLOSE M
+				{codigo.anadirInstruccion("goto "+$1);
+				codigo.completarInstrucciones(*$4, $6+1);
+				$$ = new vector<int>;}
+
+				| TSALSI expresion TSEMIC M
+				{codigo.completarInstrucciones($2->falses, $4);
+				$$ = new vector<int>;
+				*$$ = $2->trues;
+				delete $2;}
+
+				| TLEER TPOPEN variable TPCLOSE TSEMIC 
+				{codigo.anadirInstruccion("read "+*$3);
+				$$ = new vector<int>;}
+
+				| TESCRIBIR TPOPEN expresion TPCLOSE TSEMIC 
+				{codigo.anadirInstruccion("write "+$3->str);
+				$$ = new vector<int>;}
 				;
 
-variable: TIDENTIFIER
+variable: TIDENTIFIER {$$ = new string; *$$ = *$1;}
 				;
 
-expresion: expresion TEQ expresion {$$ = new string; *$$ = *$1 + " " + *$2 + " " + *$3;}
-				| expresion TMENOR expresion {$$ = new string; *$$ = *$1 + " " + *$2 + " " + *$3;}
-				| expresion TMAYOR expresion {$$ = new string; *$$ = *$1 + " " + *$2 + " " + *$3;}
-				| expresion TLTH expresion {$$ = new string; *$$ = *$1 + " " + *$2 + " " + *$3;}
-				| expresion TGTH expresion {$$ = new string; *$$ = *$1 + " " + *$2 + " " + *$3;}
-				| expresion TNEQ expresion {$$ = new string; *$$ = *$1 + " " + *$2 + " " + *$3;}
-				| expresion TSUM expresion {$$ = new string; *$$ = *$1 + " " + *$2 + " " + *$3;}
-				| expresion TRES expresion {$$ = new string; *$$ = *$1 + " " + *$2 + " " + *$3;}
-				| expresion TMUL expresion {$$ = new string; *$$ = *$1 + " " + *$2 + " " + *$3;}
-				| expresion TDIV expresion {$$ = new string; *$$ = *$1 + " " + *$2 + " " + *$3;}
-				| TIDENTIFIER
-				| TINTEGER
-				| TDOUBLE
-				| TPOPEN expresion TPCLOSE {$$ = new string; *$$ = *$1 + " " + *$2 + " " + *$3;}
-				;
+expresion: expresion TEQ expresion 
+		{ $$ = new expresionstruct;
+		*$$ = makecomparison($1->str,*$2,$3->str) ;
+		delete $1; delete $3; }
 
+		| expresion TMENOR expresion 
+		{ $$ = new expresionstruct;
+		*$$ = makecomparison($1->str,*$2,$3->str) ;
+		delete $1; delete $3; }
+
+		| expresion TMAYOR expresion 
+		{ $$ = new expresionstruct;
+		*$$ = makecomparison($1->str,*$2,$3->str) ;
+		delete $1; delete $3; }
+
+		| expresion TLTH expresion 
+		{ $$ = new expresionstruct;
+		*$$ = makecomparison($1->str,*$2,$3->str) ;
+		delete $1; delete $3; }
+
+		| expresion TGTH expresion 
+		{ $$ = new expresionstruct;
+		*$$ = makecomparison($1->str,*$2,$3->str) ;
+		delete $1; delete $3; }
+
+		| expresion TNEQ expresion 
+		{ $$ = new expresionstruct;
+		*$$ = makecomparison($1->str,*$2,$3->str) ;
+		delete $1; delete $3; }
+
+		| expresion TSUM expresion 
+		{ $$ = new expresionstruct;
+		*$$ = makearithmetic($1->str,*$2,$3->str) ;
+		delete $1; delete $3; }
+
+		| expresion TRES expresion 
+		{ $$ = new expresionstruct;
+		*$$ = makearithmetic($1->str,*$2,$3->str) ;
+		delete $1; delete $3; }
+
+		| expresion TMUL expresion 
+		{ $$ = new expresionstruct;
+		*$$ = makearithmetic($1->str,*$2,$3->str) ;
+		delete $1; delete $3; }
+
+		| expresion TDIV expresion 
+		{ $$ = new expresionstruct;
+		*$$ = makearithmetic($1->str,*$2,$3->str) ;
+		delete $1; delete $3; }
+
+		| TIDENTIFIER { $$ = new expresionstruct; $$->str = *$1; }
+		| TINTEGER { $$ = new expresionstruct; $$->str = *$1; }
+		| TDOUBLE { $$ = new expresionstruct; $$->str = *$1; }
+		| TPOPEN expresion TPCLOSE {$$ = $2;}
+		;
+
+%%
 
 expresionstruct makecomparison(std::string &s1, std::string &s2, std::string &s3) {
 	expresionstruct tmp ; 
 	tmp.trues.push_back(codigo.obtenRef()) ;
 	tmp.falses.push_back(codigo.obtenRef()+1) ;
-	codigo.anadirInstruccion("if " + s1 + s2 + s3 + " goto") ;
-	codigo.anadirInstruccion("goto") ;
+	codigo.anadirGoto("if " + s1 + s2 + s3 + " goto") ;
+	codigo.anadirGoto("goto") ;
 	return tmp ;
 }
 
 
 expresionstruct makearithmetic(std::string &s1, std::string &s2, std::string &s3) {
-	expresionstruct tmp ; 
-	tmp.str = codigo.nuevoId() ;
-	codigo.anadirInstruccion(tmp.str + ":=" + s1 + s2 + s3 + ";") ;     
-	return tmp ;
+	expresionstruct tmp; 
+	tmp.str = codigo.nuevoId();
+	codigo.anadirInstruccion(tmp.str + ":=" + s1 + s2 + s3) ;
+	return tmp;
 }
 
 vector<int> *unir(vector<int> &lis1, vector<int> &lis2) {

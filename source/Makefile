@@ -6,16 +6,16 @@ all: parser prueba
 clean:
 	rm parser.cpp parser.hpp parser tokens.cpp *~
 
-parser.cpp parser.hpp: parser.y Codigo.hpp Aux.hpp
+parser.cpp parser.hpp: parser.y Codigo.hpp Auxiliar.hpp
 	bison -d -o $@ $<
 
-tokens.cpp: tokens.l parser.hpp Aux.hpp
+tokens.cpp: tokens.l parser.hpp Auxiliar.hpp
 	lex -o $@ $<
 
-parser: $(FUENTES) Codigo.hpp Aux.hpp
+parser: $(FUENTES) Codigo.hpp Auxiliar.hpp
 	g++ $(CFLAGS) -o $@ $(FUENTES) 
 
 prueba:  
-	./parser <prueba1.in	
-	./parser <prueba2.in
-	./parser <prueba3.in
+	./parser < ../pruebas/prueba1.in	
+	./parser < ../pruebas/prueba2.in
+	./parser < ../pruebas/prueba3.in

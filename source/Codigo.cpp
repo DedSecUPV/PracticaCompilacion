@@ -58,8 +58,8 @@ void Codigo::anadirGoto(const string &instruccion) {
 
 void Codigo::anadirDeclaraciones(const vector<string> &idNombres, const string &tipoNombre) {
   vector<string>::const_iterator iter;
-  for (iter=idNombres.begin(); iter!=idNombres.end(); iter++) {
-    anadirInstruccion(tipoNombre + " " + *iter + ";");
+  for (iter=idNombres.end()-1; iter!=idNombres.begin()-1; iter--) {
+    anadirInstruccion(tipoNombre + " " + *iter);
   }
 }
 
@@ -73,8 +73,8 @@ void Codigo::anadirParametros(const vector<string> &idNombres, const string &pTi
   else if (pTipo == "out") pTipoAux = "ref" ;
   else if (pTipo == "in out") pTipoAux = "ref" ;
   vector<string>::const_iterator iter;
-  for (iter=idNombres.begin(); iter!=idNombres.end(); iter++) {
-    anadirInstruccion(pTipoAux + "_" + tipoNombre + " " + *iter + ";");
+  for (iter=idNombres.end()-1; iter!=idNombres.begin()-1; iter--) {
+    anadirInstruccion(pTipoAux + "_" + tipoNombre + " " + *iter);
   }
 }
 
