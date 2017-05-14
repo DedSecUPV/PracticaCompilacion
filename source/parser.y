@@ -18,6 +18,8 @@
 
 #include "Codigo.hpp"
 #include "Auxiliar.hpp"
+#include "PilaTablaSimbolos.hpp"
+#include "TablaSimbolos.hpp"
 
 expresionstruct makecomparison(std::string &s1, std::string &s2, std::string &s3) ;
 expresionstruct makearithmetic(std::string &s1, std::string &s2, std::string &s3) ;
@@ -46,7 +48,7 @@ Codigo codigo;
 %token <str> TSUM TRES TMUL TDIV
 %token <str> TENTERO TREAL
 %token <str> TDOSP TSEMIC TASSIG TMENOR TMAYOR TCOMA
-%token <str> TEQ TGTH TLTH TNEQ
+%token <str> TEQ TGTH TLTH TNEQ TNOT
 %token <str> RPROGRAM TPROC TKOPEN TKCLOSE
 %token <str> TPOPEN TPCLOSE
 %token <str> TIN TOUT TINOUT
@@ -187,7 +189,12 @@ sentencia: variable TASSIG expresion TSEMIC {codigo.anadirInstruccion(*$1+":="+$
 variable: TIDENTIFIER {$$ = new string; *$$ = *$1;}
 				;
 
-expresion: expresion TEQ expresion 
+expresion: TNOT expresion
+		{ $$ = new expresionstruct;
+		$$->trues = $2->falses;
+		$$->falses = $2->trues;
+		delete $2; }
+		| expresion TEQ expresion 
 		{ $$ = new expresionstruct;
 		*$$ = makecomparison($1->str,*$2,$3->str) ;
 		delete $1; delete $3; }

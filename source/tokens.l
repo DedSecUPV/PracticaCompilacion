@@ -37,6 +37,8 @@ real											TOKEN(TREAL);
 "<="											TOKEN(TLTH);
 "/="											TOKEN(TNEQ);
 
+not                                             TOKEN(TNOT);
+
 ":"												TOKEN(TDOSP);
 ";"												TOKEN(TSEMIC);
 ","												TOKEN(TCOMA);
