@@ -1,8 +1,18 @@
 programa ejemplo
 variables a,b,c : entero;
-variables d,e : real;
+variables b,c : real;
 (* esto es un comentario *)
 procedimiento sumar (x,y: in entero; resul: in out entero)
+variables aux:entero;
+{
+aux=x;
+resul=y;
+repetir {
+aux = aux - 1;
+resul = resul+1;
+ } hasta aux == 0 ;
+} 
+procedimiento sumar (x: in entero; resul: in out entero)
 variables aux:entero;
 {
 aux=x;
@@ -18,4 +28,5 @@ d= 1/b;
 e= 1/a;
 c= c*(c*d)+e;
 escribir_linea(c*c);
+si not a+5 entonces { leer(z); }
 }

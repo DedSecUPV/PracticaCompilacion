@@ -20,14 +20,38 @@
 #include "Auxiliar.hpp"
 #include "PilaTablaSimbolos.hpp"
 #include "TablaSimbolos.hpp"
+#include "ErrorDefines.hpp"
 
 expresionstruct makecomparison(std::string &s1, std::string &s2, std::string &s3) ;
 expresionstruct makearithmetic(std::string &s1, std::string &s2, std::string &s3) ;
 vector<int> *unir(vector<int> &lis1, vector<int> &lis2) ;
 
+void imprimeError(int errno, string id, string id2 = "null", string type = "null", string type2 = "null")
+{
+	printf("Error en línea %d: ", yylineno);
+	switch (errno)
+	{
+		case ID_VAR_DUPLICADO: 
+			cout << "La variable "+id+" ya ha sido declarada anteriormente." << endl; break;
+		case ID_PAR_DUPLICADO: 
+			cout << "El parámetro "+id+" ya ha sido declarado anteriormente en el procedimiento "+id2+"." << endl; break;
+		case ID_PROC_DUPLICADO: 
+			cout << "El procedimiento "+id+" ya ha sido declarado anteriormente." << endl; break;
+		case TIPO_MISMATCH:
+			cout << "Se esperaba un "+type2+" y se ha recibido un "+type+"." << endl; break;
+		case TIPO_MISMATCH_VAR:
+			cout << "Se ha intentado asignar un "+type+" a la variable "+id+" de tipo "+type2+"." << endl; break;
+		case COMP_CON_BOOL: 
+			cout << "Se intenta realizar una comparación aritmética entre booleanos." << endl; break;
+		case OP_TIPOS_DIST: 
+			cout << "Se ha intado operar un "+type+" con un "+type2+"." << endl; break;
+	}
+}
+
 Codigo codigo;
 PilaTablaSimbolos pila;
 string procActual;
+bool noErrores = true;
 
 %}
 
@@ -88,14 +112,17 @@ programa: RPROGRAM  TIDENTIFIER {TablaSimbolos st; pila.empilar(st); codigo.anad
 				TKOPEN
 				lista_de_sentencias
 				TKCLOSE
-                {codigo.anadirInstruccion("halt"); codigo.escribir(); pila.desempilar();}
+                {codigo.anadirInstruccion("halt"); if (noErrores) {codigo.escribir();} pila.desempilar();}
 				;
 
 declaraciones: {} 
 			| TVAR lista_de_ident TDOSP tipo TSEMIC 
             {
 				for(vector<string>::iterator i = $2->begin(); i != $2->end(); i++)
-				{pila.tope().anadirVariable(*i, *$4);}
+				{
+					if (!pila.tope().existeId(*i)) pila.tope().anadirVariable(*i, *$4);
+					else {noErrores = false; imprimeError(ID_VAR_DUPLICADO, *i);}
+				}
 				codigo.anadirDeclaraciones(*$2, *$4); delete $2; delete $4;
 			} 
 			declaraciones 
@@ -119,7 +146,16 @@ decl_de_subprogs: {}
 				| decl_de_subprograma decl_de_subprogs
 				;
 
-decl_de_subprograma: TPROC TIDENTIFIER {procActual = *$2; pila.tope().anadirProcedimiento(*$2); TablaSimbolos st; pila.empilar(st); codigo.anadirInstruccion("proc "+*$2);}
+decl_de_subprograma: TPROC TIDENTIFIER 
+					{
+						procActual = *$2; 
+						if (!pila.tope().existeId(*$2))
+							pila.tope().anadirProcedimiento(*$2);
+						else {noErrores = false; imprimeError(ID_PROC_DUPLICADO, *$2); return 1;}
+						TablaSimbolos st; 
+						pila.empilar(st); 
+						codigo.anadirInstruccion("proc "+*$2);
+					}
 					argumentos
 					declaraciones
 					TKOPEN
@@ -135,7 +171,10 @@ argumentos: {}
 lista_de_param: lista_de_ident TDOSP clase_par tipo 
 				{
 					for(vector<string>::iterator i = $1->begin(); i != $1->end(); i++)
-					{pila.anadirParametro(procActual, *i, *$3, *$4);}
+					{
+						if (!pila.tope().existeId(*i)) pila.anadirParametro(procActual, *i, *$3, *$4);
+						else {noErrores = false; imprimeError(ID_PAR_DUPLICADO, *i, procActual);}
+					}
 					codigo.anadirParametros(*$1, *$3, *$4);
 					delete $1; delete $3; delete $4;
 				} 
@@ -150,7 +189,10 @@ clase_par: TIN {$$ = new string; *$$ = "in";}
 resto_lis_de_param: {} 
 				| TSEMIC lista_de_ident TDOSP clase_par tipo 
 				{for(vector<string>::iterator i = $2->begin(); i != $2->end(); i++)
-					{pila.anadirParametro(procActual, *i, *$4, *$5);}
+				{
+					if (!pila.tope().existeId(*i)) pila.anadirParametro(procActual, *i, *$4, *$5);
+					else {noErrores = false; imprimeError(ID_PAR_DUPLICADO, *i, procActual);}
+				}
 				codigo.anadirParametros(*$2, *$4, *$5);}
                 resto_lis_de_param
 				;
@@ -164,7 +206,14 @@ lista_de_sentencias: {} {$$ = new vector<int>;}
 
 M: {$$ = codigo.obtenRef();};
 
-sentencia: variable TASSIG expresion TSEMIC {codigo.anadirInstruccion(*$1+":="+$3->str); $$ = new vector<int>;}
+sentencia: variable TASSIG expresion TSEMIC 
+			{codigo.anadirInstruccion(*$1+":="+$3->str); 
+			if ($3->tipo.compare(pila.tope().obtenerTipo(*$1)) != 0)
+			{
+				noErrores = false;
+				imprimeError(TIPO_MISMATCH_VAR, *$1, "", $3->tipo, pila.tope().obtenerTipo(*$1));
+			}
+			$$ = new vector<int>;}
 
 				| TSI expresion TENTONCES M TKOPEN lista_de_sentencias TKCLOSE M 
 				{codigo.completarInstrucciones($2->trues, $4);
@@ -203,63 +252,124 @@ variable: TIDENTIFIER {$$ = new string; *$$ = *$1;}
 				;
 
 expresion: TNOT expresion
-		{ $$ = new expresionstruct;
+		{
+			if ($2->tipo != "bool")
+			{
+				noErrores = false;
+				imprimeError(TIPO_MISMATCH, "", "", $2->tipo, "bool");
+			} 
+		$$ = new expresionstruct;
 		$$->trues = $2->falses;
 		$$->falses = $2->trues;
 		delete $2; }
+
 		| expresion TEQ expresion 
 		{ $$ = new expresionstruct;
+		if ($1->tipo == "bool" || $3->tipo == "bool")
+		{
+			noErrores = false;
+			imprimeError(COMP_CON_BOOL, "");
+		}
 		*$$ = makecomparison($1->str,*$2,$3->str) ;
 		delete $1; delete $3; }
 
 		| expresion TMENOR expresion 
 		{ $$ = new expresionstruct;
+		if ($1->tipo == "bool" || $3->tipo == "bool")
+		{
+			noErrores = false;
+			imprimeError(COMP_CON_BOOL, "");
+		}
 		*$$ = makecomparison($1->str,*$2,$3->str) ;
 		delete $1; delete $3; }
 
 		| expresion TMAYOR expresion 
 		{ $$ = new expresionstruct;
+		if ($1->tipo == "bool" || $3->tipo == "bool")
+		{
+			noErrores = false;
+			imprimeError(COMP_CON_BOOL, "");
+		}
 		*$$ = makecomparison($1->str,*$2,$3->str) ;
 		delete $1; delete $3; }
 
 		| expresion TLTH expresion 
 		{ $$ = new expresionstruct;
+		if ($1->tipo == "bool" || $3->tipo == "bool")
+		{
+			noErrores = false;
+			imprimeError(COMP_CON_BOOL, "");
+		}
 		*$$ = makecomparison($1->str,*$2,$3->str) ;
 		delete $1; delete $3; }
 
 		| expresion TGTH expresion 
 		{ $$ = new expresionstruct;
+		if ($1->tipo == "bool" || $3->tipo == "bool")
+		{
+			noErrores = false;
+			imprimeError(COMP_CON_BOOL, "");
+		}
 		*$$ = makecomparison($1->str,*$2,$3->str) ;
 		delete $1; delete $3; }
 
 		| expresion TNEQ expresion 
 		{ $$ = new expresionstruct;
+		if ($1->tipo == "bool" || $3->tipo == "bool")
+		{
+			noErrores = false;
+			imprimeError(COMP_CON_BOOL, "");
+		}
 		*$$ = makecomparison($1->str,*$2,$3->str) ;
 		delete $1; delete $3; }
 
 		| expresion TSUM expresion 
 		{ $$ = new expresionstruct;
+		if ($1->tipo.compare($3->tipo) != 0)
+		{
+			noErrores = false;
+			imprimeError(OP_TIPOS_DIST, "", "", $1->tipo, $3->tipo);
+		}
 		*$$ = makearithmetic($1->str,*$2,$3->str) ;
+		$$->tipo = $1->tipo;
 		delete $1; delete $3; }
 
 		| expresion TRES expresion 
 		{ $$ = new expresionstruct;
+		if ($1->tipo.compare($3->tipo) != 0)
+		{
+			noErrores = false;
+			imprimeError(OP_TIPOS_DIST, "", "", $1->tipo, $3->tipo);
+		}
 		*$$ = makearithmetic($1->str,*$2,$3->str) ;
+		$$->tipo = $1->tipo;
 		delete $1; delete $3; }
 
 		| expresion TMUL expresion 
 		{ $$ = new expresionstruct;
+		if ($1->tipo.compare($3->tipo) != 0)
+		{
+			noErrores = false;
+			imprimeError(OP_TIPOS_DIST, "", "", $1->tipo, $3->tipo);
+		}
 		*$$ = makearithmetic($1->str,*$2,$3->str) ;
+		$$->tipo = $1->tipo;
 		delete $1; delete $3; }
 
 		| expresion TDIV expresion 
 		{ $$ = new expresionstruct;
+		if ($1->tipo.compare($3->tipo) != 0)
+		{
+			noErrores = false;
+			imprimeError(OP_TIPOS_DIST, "", "", $1->tipo, $3->tipo);
+		}
 		*$$ = makearithmetic($1->str,*$2,$3->str) ;
+		$$->tipo = $1->tipo;
 		delete $1; delete $3; }
 
-		| TIDENTIFIER { $$ = new expresionstruct; $$->str = *$1; }
-		| TINTEGER { $$ = new expresionstruct; $$->str = *$1; }
-		| TDOUBLE { $$ = new expresionstruct; $$->str = *$1; }
+		| TIDENTIFIER { $$ = new expresionstruct; $$->str = *$1; $$->tipo = pila.tope().obtenerTipo(*$1);}
+		| TINTEGER { $$ = new expresionstruct; $$->str = *$1; $$->tipo = "int";}
+		| TDOUBLE { $$ = new expresionstruct; $$->str = *$1; $$->tipo = "real";}
 		| TPOPEN expresion TPCLOSE {$$ = $2;}
 		;
 
@@ -269,6 +379,7 @@ expresionstruct makecomparison(std::string &s1, std::string &s2, std::string &s3
 	expresionstruct tmp ; 
 	tmp.trues.push_back(codigo.obtenRef()) ;
 	tmp.falses.push_back(codigo.obtenRef()+1) ;
+	tmp.tipo = "bool";
 	codigo.anadirGoto("if " + s1 + s2 + s3 + " goto") ;
 	codigo.anadirGoto("goto") ;
 	return tmp ;

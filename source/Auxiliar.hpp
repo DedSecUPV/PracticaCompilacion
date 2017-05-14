@@ -5,6 +5,7 @@ struct expresionstruct {
     string str;
     vector<int> trues;
     vector<int> falses;
+    string tipo;
 };
 
 #endif /* AUX_HPP_ */
