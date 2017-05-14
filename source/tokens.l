@@ -8,6 +8,8 @@
  using namespace std ;
  #include "Auxiliar.hpp"
  #include "parser.hpp" 
+ #include "PilaTablaSimbolos.hpp"
+ #include "TablaSimbolos.hpp"
 
  #define TOKEN(t) yylval.str = new std::string(yytext, yyleng) ; return t 
 

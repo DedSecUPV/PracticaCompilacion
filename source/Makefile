@@ -1,18 +1,18 @@
 CFLAGS=-Wall
-FUENTES=parser.cpp main.cpp tokens.cpp Codigo.cpp
+FUENTES=parser.cpp main.cpp tokens.cpp Codigo.cpp PilaTablaSimbolos.cpp TablaSimbolos.cpp
 
 all: parser prueba
 
 clean:
 	rm parser.cpp parser.hpp parser tokens.cpp *~
 
-parser.cpp parser.hpp: parser.y Codigo.hpp Auxiliar.hpp
+parser.cpp parser.hpp: parser.y Codigo.hpp Auxiliar.hpp PilaTablaSimbolos.hpp TablaSimbolos.hpp
 	bison -d -o $@ $<
 
-tokens.cpp: tokens.l parser.hpp Auxiliar.hpp
+tokens.cpp: tokens.l parser.hpp Auxiliar.hpp PilaTablaSimbolos.hpp TablaSimbolos.hpp
 	lex -o $@ $<
 
-parser: $(FUENTES) Codigo.hpp Auxiliar.hpp
+parser: $(FUENTES) Codigo.hpp Auxiliar.hpp PilaTablaSimbolos.hpp TablaSimbolos.hpp
 	g++ $(CFLAGS) -o $@ $(FUENTES) 
 
 prueba:  

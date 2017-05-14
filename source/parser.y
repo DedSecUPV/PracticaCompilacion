@@ -26,6 +26,8 @@ expresionstruct makearithmetic(std::string &s1, std::string &s2, std::string &s3
 vector<int> *unir(vector<int> &lis1, vector<int> &lis2) ;
 
 Codigo codigo;
+PilaTablaSimbolos pila;
+string procActual;
 
 %}
 
@@ -80,18 +82,22 @@ Codigo codigo;
 
 %%
 
-programa: RPROGRAM  TIDENTIFIER {codigo.anadirInstruccion("prog " + *$2);}
+programa: RPROGRAM  TIDENTIFIER {TablaSimbolos st; pila.empilar(st); codigo.anadirInstruccion("prog " + *$2);}
 				declaraciones
 				decl_de_subprogs
 				TKOPEN
 				lista_de_sentencias
 				TKCLOSE
-                {codigo.anadirInstruccion("halt"); codigo.escribir();}
+                {codigo.anadirInstruccion("halt"); codigo.escribir(); pila.desempilar();}
 				;
 
 declaraciones: {} 
 			| TVAR lista_de_ident TDOSP tipo TSEMIC 
-            {codigo.anadirDeclaraciones(*$2, *$4); delete $2; delete $4;} 
+            {
+				for(vector<string>::iterator i = $2->begin(); i != $2->end(); i++)
+				{pila.tope().anadirVariable(*i, *$4);}
+				codigo.anadirDeclaraciones(*$2, *$4); delete $2; delete $4;
+			} 
 			declaraciones 
 			;
 
@@ -113,13 +119,13 @@ decl_de_subprogs: {}
 				| decl_de_subprograma decl_de_subprogs
 				;
 
-decl_de_subprograma: TPROC TIDENTIFIER {codigo.anadirInstruccion("proc "+*$2);}
+decl_de_subprograma: TPROC TIDENTIFIER {procActual = *$2; pila.tope().anadirProcedimiento(*$2); TablaSimbolos st; pila.empilar(st); codigo.anadirInstruccion("proc "+*$2);}
 					argumentos
 					declaraciones
 					TKOPEN
 					lista_de_sentencias
 					TKCLOSE
-					{codigo.anadirInstruccion("endproc");}
+					{pila.desempilar(); codigo.anadirInstruccion("endproc");}
 					;
 
 argumentos: {}
@@ -127,8 +133,12 @@ argumentos: {}
 			;
 
 lista_de_param: lista_de_ident TDOSP clase_par tipo 
-				{codigo.anadirParametros(*$1, *$3, *$4);
-				delete $1; delete $3; delete $4;} 
+				{
+					for(vector<string>::iterator i = $1->begin(); i != $1->end(); i++)
+					{pila.anadirParametro(procActual, *i, *$3, *$4);}
+					codigo.anadirParametros(*$1, *$3, *$4);
+					delete $1; delete $3; delete $4;
+				} 
 				resto_lis_de_param
 				;
 
@@ -138,7 +148,10 @@ clase_par: TIN {$$ = new string; *$$ = "in";}
 		;
 
 resto_lis_de_param: {} 
-				| TSEMIC lista_de_ident TDOSP clase_par tipo {codigo.anadirParametros(*$2, *$4, *$5);}
+				| TSEMIC lista_de_ident TDOSP clase_par tipo 
+				{for(vector<string>::iterator i = $2->begin(); i != $2->end(); i++)
+					{pila.anadirParametro(procActual, *i, *$4, *$5);}
+				codigo.anadirParametros(*$2, *$4, *$5);}
                 resto_lis_de_param
 				;
 
