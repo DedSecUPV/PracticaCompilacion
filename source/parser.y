@@ -49,6 +49,10 @@ void imprimeError(int errno, string id, string id2 = "null", string type = "null
 			cout << "Se ha intado operar un "+type+" con un "+type2+"." << endl; break;
 		case NO_EXISTE_ID:
 			cout << "La variable "+id+" no existe." << endl; break;
+		case PROC_INEXISTENTE:
+			cout << "El procedimiento "+id+" no existe." << endl; break;
+		case NUM_PARAM_NO_MATCH:
+			cout << "El numero de argumentos en la llamada al procedimiento "+id+" no coincide con los requeridos." << endl; break;
 	}
 }
 
@@ -66,6 +70,7 @@ bool noErrores = true;
     string *str ; 
 	vector<string> *list ;
 	expresionstruct *expr ;
+	vector<expresionstruct> *list_e;
 	int number ;
 	vector<int> *numlist ;
 }
@@ -100,6 +105,7 @@ bool noErrores = true;
 %type <numlist> sentencia
 %type <str> variable
 %type <expr> expresion
+%type <list_e> list_expr resto_lista_expr
 %type <number> M
 
 %left TOR
@@ -188,9 +194,9 @@ lista_de_param: lista_de_ident TDOSP clase_par tipo
 				resto_lis_de_param
 				;
 
-clase_par: TIN {$$ = new string; *$$ = "in";}
-        | TOUT {$$ = new string; *$$ = "out";}
-        | TINOUT {$$ = new string; *$$ = "in out";}
+clase_par: TIN {$$ = new string; *$$ = "val";}
+        | TOUT {$$ = new string; *$$ = "ref";}
+        | TINOUT {$$ = new string; *$$ = "ref";}
 		;
 
 resto_lis_de_param: {} 
@@ -237,8 +243,8 @@ sentencia: variable TASSIG expresion TSEMIC
 				$$ = $6;}
 
 				| TREPETIR M TKOPEN lista_de_sentencias TKCLOSE THASTA expresion TSEMIC M
-				{codigo.completarInstrucciones($7->trues, $2);
-				codigo.completarInstrucciones($7->falses, $9);
+				{codigo.completarInstrucciones($7->falses, $2);
+				codigo.completarInstrucciones($7->trues, $9);
 				codigo.completarInstrucciones(*$4, $9);
 				$$ = new vector<int>;
 				delete $7;}
@@ -260,7 +266,44 @@ sentencia: variable TASSIG expresion TSEMIC
 
 				| TESCRIBIR TPOPEN expresion TPCLOSE TSEMIC 
 				{codigo.anadirInstruccion("write "+$3->str);
+				codigo.anadirInstruccion("writeln");
 				$$ = new vector<int>;}
+
+				| TIDENTIFIER TPOPEN list_expr TPCLOSE TSEMIC
+				{
+					if (!pila.tope().existeId(*$1))
+					{
+						noErrores = false;
+						imprimeError(PROC_INEXISTENTE, *$1);
+					}
+					else if ((int) $3->size() == pila.tope().numArgsProcedimiento(*$1))
+					{
+						int param = 0;
+						std::pair<std::string, std::string> parametro;
+						for (vector<expresionstruct>::iterator i = $3->end()-1; i != $3->begin()-1; i--)
+						{
+								parametro = pila.tope().obtenerTiposParametro(*$1, param);
+								if (i->tipo.compare(parametro.second) == 0)
+								{
+									codigo.anadirInstruccion("param_"+parametro.first+" "+i->str);
+								}
+								else
+								{
+									noErrores = false;
+									imprimeError(TIPO_MISMATCH, "", "", i->tipo, parametro.second);
+								}
+							param++;
+						}
+						codigo.anadirInstruccion("call "+*$1);
+					}
+					else
+					{
+						noErrores = false;
+						imprimeError(NUM_PARAM_NO_MATCH, *$1);
+					}
+					delete $3;
+					$$ = new vector<int>;
+				}
 				;
 
 variable: TIDENTIFIER {$$ = new string; *$$ = *$1;}
@@ -408,7 +451,7 @@ expresion: TNOT expresion
 			noErrores = false;
 			imprimeError(OP_TIPOS_DIST, "", "", $1->tipo, $3->tipo);
 		}
-		codigo.anadirInstruccion("if "+$3->str+" = 0 goto ERRORDIVNULL");
+		codigo.anadirInstruccion("if "+$3->str+" == 0 goto ERRORDIVNULL");
 		*$$ = makearithmetic($1->str,*$2,$3->str) ;
 		$$->tipo = $1->tipo;
 		delete $1; delete $3; }
@@ -420,12 +463,25 @@ expresion: TNOT expresion
 			{
 				noErrores = false;
 				imprimeError(NO_EXISTE_ID, *$1);
+				$$->tipo = "null";
 			}
-			$$->str = *$1; $$->tipo = pila.tope().obtenerTipo(*$1);
+			else
+			{ $$->tipo = pila.tope().obtenerTipo(*$1); }
+			$$->str = *$1;
 		}
 		| TINTEGER { $$ = new expresionstruct; $$->str = *$1; $$->tipo = "int";}
 		| TDOUBLE { $$ = new expresionstruct; $$->str = *$1; $$->tipo = "real";}
 		| TPOPEN expresion TPCLOSE {$$ = $2;}
+		;
+
+	list_expr: expresion resto_lista_expr
+		{$$ = $2; $$->push_back(*$1);}
+		| {$$ = new vector<expresionstruct>;}
+		;
+
+	resto_lista_expr: {$$ = new vector<expresionstruct>;}
+		| TCOMA expresion resto_lista_expr
+		{$$ = $3; $$->push_back(*$2);}
 		;
 
 %%

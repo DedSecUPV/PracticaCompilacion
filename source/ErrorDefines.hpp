@@ -10,5 +10,7 @@
 #define OP_TIPOS_DIST 6
 #define NO_EXISTE_ID 7
 #define COMP_SIN_BOOL 8
+#define PROC_INEXISTENTE 9
+#define NUM_PARAM_NO_MATCH 10
 
 #endif /* ERRORDEFINES_HPP_ */
