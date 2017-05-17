@@ -40,6 +40,8 @@ real											TOKEN(TREAL);
 "/="											TOKEN(TNEQ);
 
 not                                             TOKEN(TNOT);
+or                                              TOKEN(TOR);
+and                                             TOKEN(TAND);
 
 ":"												TOKEN(TDOSP);
 ";"												TOKEN(TSEMIC);

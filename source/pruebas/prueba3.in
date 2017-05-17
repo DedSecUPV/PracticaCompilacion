@@ -1,0 +1,19 @@
+programa ejemplo
+variables a,b,c : entero;
+variables d,e : real;
+(* esto es un comentario *)
+
+procedimiento sumar (x,y: in entero; resul: in out entero)
+variables aux: entero;
+{
+aux=x+y;
+resul=aux;
+} 
+
+{
+leer(e); leer(a);
+d= 1.0/e;
+e= 1.0/(d*d);
+c= c*((c+1)*a)+b;
+escribir_linea(c*c);
+}

@@ -42,9 +42,13 @@ void imprimeError(int errno, string id, string id2 = "null", string type = "null
 		case TIPO_MISMATCH_VAR:
 			cout << "Se ha intentado asignar un "+type+" a la variable "+id+" de tipo "+type2+"." << endl; break;
 		case COMP_CON_BOOL: 
-			cout << "Se intenta realizar una comparación aritmética entre booleanos." << endl; break;
+			cout << "Se intenta realizar una comparación aritmética entre expresiones booleanas." << endl; break;
+		case COMP_SIN_BOOL: 
+			cout << "Se intenta realizar una comparación booleana entre expresiones que no son booleanas." << endl; break;
 		case OP_TIPOS_DIST: 
 			cout << "Se ha intado operar un "+type+" con un "+type2+"." << endl; break;
+		case NO_EXISTE_ID:
+			cout << "La variable "+id+" no existe." << endl; break;
 	}
 }
 
@@ -74,7 +78,7 @@ bool noErrores = true;
 %token <str> TSUM TRES TMUL TDIV
 %token <str> TENTERO TREAL
 %token <str> TDOSP TSEMIC TASSIG TMENOR TMAYOR TCOMA
-%token <str> TEQ TGTH TLTH TNEQ TNOT
+%token <str> TEQ TGTH TLTH TNEQ TNOT TOR TAND
 %token <str> RPROGRAM TPROC TKOPEN TKCLOSE
 %token <str> TPOPEN TPCLOSE
 %token <str> TIN TOUT TINOUT
@@ -98,6 +102,9 @@ bool noErrores = true;
 %type <expr> expresion
 %type <number> M
 
+%left TOR
+%left TAND
+%left TNOT
 %nonassoc TMENOR TMAYOR TEQ TGTH TLTH TNEQ
 %left TSUM TRES
 %left TMUL TDIV
@@ -207,11 +214,19 @@ lista_de_sentencias: {} {$$ = new vector<int>;}
 M: {$$ = codigo.obtenRef();};
 
 sentencia: variable TASSIG expresion TSEMIC 
-			{codigo.anadirInstruccion(*$1+":="+$3->str); 
-			if ($3->tipo.compare(pila.tope().obtenerTipo(*$1)) != 0)
+			{codigo.anadirInstruccion(*$1+":="+$3->str);
+			if (pila.tope().existeId(*$1))
+			{
+				if ($3->tipo.compare(pila.tope().obtenerTipo(*$1)) != 0)
+				{
+					noErrores = false;
+					imprimeError(TIPO_MISMATCH_VAR, *$1, "", $3->tipo, pila.tope().obtenerTipo(*$1));
+				}
+			}
+			else
 			{
 				noErrores = false;
-				imprimeError(TIPO_MISMATCH_VAR, *$1, "", $3->tipo, pila.tope().obtenerTipo(*$1));
+				imprimeError(NO_EXISTE_ID, *$1);
 			}
 			$$ = new vector<int>;}
 
@@ -262,6 +277,36 @@ expresion: TNOT expresion
 		$$->trues = $2->falses;
 		$$->falses = $2->trues;
 		delete $2; }
+
+		| expresion TOR M expresion
+		{
+			$$ = new expresionstruct;
+			if ($1->tipo != "bool" || $4->tipo != "bool")
+			{
+				noErrores = false;
+				imprimeError(COMP_SIN_BOOL, "");
+			}
+			codigo.completarInstrucciones($1->falses, $3);
+			$$->trues = *unir($1->trues, $4->trues);
+			$$->falses = $4->falses;
+			$$->tipo = "bool";
+			delete $1; delete $4;
+		}
+
+		| expresion TAND M expresion
+		{
+			$$ = new expresionstruct;
+			if ($1->tipo != "bool" || $4->tipo != "bool")
+			{
+				noErrores = false;
+				imprimeError(COMP_SIN_BOOL, "");
+			}
+			codigo.completarInstrucciones($1->falses, $3);
+			$$->trues = $4->trues;
+			$$->falses = *unir($1->falses, $4->falses);
+			$$->tipo = "bool";
+			delete $1; delete $4;
+		}
 
 		| expresion TEQ expresion 
 		{ $$ = new expresionstruct;
@@ -363,11 +408,21 @@ expresion: TNOT expresion
 			noErrores = false;
 			imprimeError(OP_TIPOS_DIST, "", "", $1->tipo, $3->tipo);
 		}
+		codigo.anadirInstruccion("if "+$3->str+" = 0 goto ERRORDIVNULL");
 		*$$ = makearithmetic($1->str,*$2,$3->str) ;
 		$$->tipo = $1->tipo;
 		delete $1; delete $3; }
 
-		| TIDENTIFIER { $$ = new expresionstruct; $$->str = *$1; $$->tipo = pila.tope().obtenerTipo(*$1);}
+		| TIDENTIFIER 
+		{ 
+			$$ = new expresionstruct; 
+			if (!pila.tope().existeId(*$1))
+			{
+				noErrores = false;
+				imprimeError(NO_EXISTE_ID, *$1);
+			}
+			$$->str = *$1; $$->tipo = pila.tope().obtenerTipo(*$1);
+		}
 		| TINTEGER { $$ = new expresionstruct; $$->str = *$1; $$->tipo = "int";}
 		| TDOUBLE { $$ = new expresionstruct; $$->str = *$1; $$->tipo = "real";}
 		| TPOPEN expresion TPCLOSE {$$ = $2;}
