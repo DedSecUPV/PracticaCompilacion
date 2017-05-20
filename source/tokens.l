@@ -53,6 +53,11 @@ and                                             TOKEN(TAND);
 "("												TOKEN(TPOPEN);
 ")"												TOKEN(TPCLOSE);
 
+array                                           TOKEN(TARRAY);
+of                                              TOKEN(TOF);
+"["                                             TOKEN(TCORCHA);
+"]"                                             TOKEN(TCORCHC);
+
 in												TOKEN(TIN);
 out												TOKEN(TOUT);
 "in out"										TOKEN(TINOUT);

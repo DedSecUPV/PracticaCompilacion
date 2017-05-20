@@ -1,0 +1,25 @@
+programa ejemplo
+variables a,b,c : array[2][2] of entero;
+variables d,e : array[5][11][23][242] of real;
+(* esto es un comentario *)
+procedimiento sumar (x,y: in array[2][2] of entero; resul: in out entero)
+variables aux:entero;
+{
+aux=x[1][1];
+resul=y[1][0];
+repetir {
+aux = aux - 1;
+resul = resul+1;
+ } hasta aux == 0 ;
+}
+{
+leer(a[0][0]); leer(e[1][10][20][200]);
+d[1][1][1][1]= 1.0/e[1][2][3][4];
+e[2][2][2][100]= 1.0/1.3;
+sumar(a,b,c[0][0]); (* los que hagan llamadas a procedimientos *)
+
+si a[0][0]/1 + 4 * 2 > b[1][1] entonces
+{
+leer(a[0][0]);
+}
+}

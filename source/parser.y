@@ -21,10 +21,15 @@
 #include "PilaTablaSimbolos.hpp"
 #include "TablaSimbolos.hpp"
 #include "ErrorDefines.hpp"
+#include <sstream>
+
+#define SSTR( x ) static_cast< std::ostringstream & >( \
+        ( std::ostringstream() << std::dec << x ) ).str()
 
 expresionstruct makecomparison(std::string &s1, std::string &s2, std::string &s3) ;
 expresionstruct makearithmetic(std::string &s1, std::string &s2, std::string &s3) ;
 vector<int> *unir(vector<int> &lis1, vector<int> &lis2) ;
+int tamano_total(vector<int> &lis) ;
 
 void imprimeError(int errno, string id, string id2 = "null", string type = "null", string type2 = "null")
 {
@@ -53,6 +58,14 @@ void imprimeError(int errno, string id, string id2 = "null", string type = "null
 			cout << "El procedimiento "+id+" no existe." << endl; break;
 		case NUM_PARAM_NO_MATCH:
 			cout << "El numero de argumentos en la llamada al procedimiento "+id+" no coincide con los requeridos." << endl; break;
+		case ARRAY_MISMATCH:
+			cout << "Se recibe un array que no tiene el mismo número de elementos o elementos de los mismos tipos requeridos en la llamada." << endl; break;
+		case ID_NO_ARRAY:
+			cout << "La variable "+id+" no es un array." << endl; break;
+		case DIMENSIONES_MISMATCH:
+			cout << "Las dimensiones del array "+id+" no coinciden con lo que se intenta acceder." << endl; break;
+		case OUT_OF_BOUNDS:
+			cout << "Acceso al array "+id+" fuera de rango." << endl; break;
 	}
 }
 
@@ -89,9 +102,11 @@ bool noErrores = true;
 %token <str> TIN TOUT TINOUT
 %token <str> TSI TENTONCES TREPSIEMP TREPETIR THASTA TSALSI
 %token <str> TLEER TESCRIBIR
+%token <str> TARRAY TOF TCORCHA TCORCHC
 
 %type <str> programa
 %type <str> declaraciones
+%type <numlist> dimensiones_array
 %type <list> lista_de_ident
 %type <list> resto_lista_id
 %type <str> tipo
@@ -103,7 +118,7 @@ bool noErrores = true;
 %type <str> resto_lis_de_param
 %type <numlist> lista_de_sentencias
 %type <numlist> sentencia
-%type <str> variable
+%type <expr> variable
 %type <expr> expresion
 %type <list_e> list_expr resto_lista_expr
 %type <number> M
@@ -139,6 +154,22 @@ declaraciones: {}
 				codigo.anadirDeclaraciones(*$2, *$4); delete $2; delete $4;
 			} 
 			declaraciones 
+			| TVAR lista_de_ident TDOSP TARRAY dimensiones_array TOF tipo TSEMIC
+			{
+				for(vector<string>::iterator i = $2->begin(); i != $2->end(); i++)
+				{
+					if (!pila.tope().existeId(*i)) pila.tope().anadirArray(*i, *$7, *$5);
+					else {noErrores = false; imprimeError(ID_VAR_DUPLICADO, *i);}
+					codigo.anadirInstruccion("array_"+*$7+" "+*i+","+SSTR(tamano_total(*$5)));
+				}
+				delete $2; delete $5; delete $7;
+			}
+			declaraciones
+			;
+
+dimensiones_array: TCORCHA TINTEGER TCORCHC {$$ = new vector<int>; $$->push_back(atoi($2->c_str()));}
+			| TCORCHA TINTEGER TCORCHC dimensiones_array
+			{$$ = new vector<int>; $$->push_back(atoi($2->c_str())); $$ = unir(*$$, *$4);}
 			;
 
 lista_de_ident: TIDENTIFIER resto_lista_id
@@ -190,7 +221,17 @@ lista_de_param: lista_de_ident TDOSP clase_par tipo
 					}
 					codigo.anadirParametros(*$1, *$3, *$4);
 					delete $1; delete $3; delete $4;
-				} 
+				} resto_lis_de_param
+				| lista_de_ident TDOSP clase_par TARRAY dimensiones_array TOF tipo
+				{
+					for(vector<string>::iterator i = $1->begin(); i != $1->end(); i++)
+					{
+						if (!pila.tope().existeId(*i)) pila.anadirParametroArray(procActual, *i, *$3, *$7, $5);
+						else {noErrores = false; imprimeError(ID_VAR_DUPLICADO, *i);}
+						codigo.anadirInstruccion(*$3+"_array_"+*$7+" "+*i+","+SSTR(tamano_total(*$5)));
+					}
+					delete $2; delete $5; delete $7;
+				}
 				resto_lis_de_param
 				;
 
@@ -208,6 +249,17 @@ resto_lis_de_param: {}
 				}
 				codigo.anadirParametros(*$2, *$4, *$5);}
                 resto_lis_de_param
+				| TSEMIC lista_de_ident TDOSP clase_par TARRAY dimensiones_array TOF tipo
+				{
+					for(vector<string>::iterator i = $2->begin(); i != $2->end(); i++)
+					{
+						if (!pila.tope().existeId(*i)) pila.anadirParametroArray(procActual, *i, *$4, *$8, $6);
+						else {noErrores = false; imprimeError(ID_VAR_DUPLICADO, *i);}
+						codigo.anadirInstruccion(*$4+"_array_"+*$8+" "+*i+","+SSTR(tamano_total(*$6)));
+					}
+					delete $2; delete $5; delete $7;
+				}
+				resto_lis_de_param
 				;
 
 lista_de_sentencias: {} {$$ = new vector<int>;}
@@ -220,19 +272,11 @@ lista_de_sentencias: {} {$$ = new vector<int>;}
 M: {$$ = codigo.obtenRef();};
 
 sentencia: variable TASSIG expresion TSEMIC 
-			{codigo.anadirInstruccion(*$1+":="+$3->str);
-			if (pila.tope().existeId(*$1))
-			{
-				if ($3->tipo.compare(pila.tope().obtenerTipo(*$1)) != 0)
-				{
-					noErrores = false;
-					imprimeError(TIPO_MISMATCH_VAR, *$1, "", $3->tipo, pila.tope().obtenerTipo(*$1));
-				}
-			}
-			else
+			{codigo.anadirInstruccion($1->str+":="+$3->str);
+			if ($3->tipo.compare($1->tipo) != 0)
 			{
 				noErrores = false;
-				imprimeError(NO_EXISTE_ID, *$1);
+				imprimeError(TIPO_MISMATCH_VAR, $1->str, "", $3->tipo, $1->tipo);
 			}
 			$$ = new vector<int>;}
 
@@ -261,7 +305,7 @@ sentencia: variable TASSIG expresion TSEMIC
 				delete $2;}
 
 				| TLEER TPOPEN variable TPCLOSE TSEMIC 
-				{codigo.anadirInstruccion("read "+*$3);
+				{codigo.anadirInstruccion("read "+$3->str);
 				$$ = new vector<int>;}
 
 				| TESCRIBIR TPOPEN expresion TPCLOSE TSEMIC 
@@ -279,18 +323,48 @@ sentencia: variable TASSIG expresion TSEMIC
 					else if ((int) $3->size() == pila.tope().numArgsProcedimiento(*$1))
 					{
 						int param = 0;
-						std::pair<std::string, std::string> parametro;
+						TablaSimbolos::ClasesParametros parametro;
 						for (vector<expresionstruct>::iterator i = $3->end()-1; i != $3->begin()-1; i--)
 						{
 								parametro = pila.tope().obtenerTiposParametro(*$1, param);
-								if (i->tipo.compare(parametro.second) == 0)
+								if (i->tipo.compare(parametro.tipoVar) == 0)
 								{
-									codigo.anadirInstruccion("param_"+parametro.first+" "+i->str);
+									if (i->tipo == "array" && i->tipoElemtsArray.compare(parametro.tipoElemtsArray) == 0 && i->dimensiones.size() == parametro.dimensiones.size())
+									{
+										bool dimensiones_iguales = true;
+										vector<int>::iterator a1 = i->dimensiones.begin();
+										vector<int>::iterator a2 = parametro.dimensiones.begin();
+										while (dimensiones_iguales && a1 != i->dimensiones.end())
+										{
+											if (*a1 != *a2) dimensiones_iguales = false;
+											a1++;
+											a2++;
+										}
+										if (dimensiones_iguales)
+										{
+											codigo.anadirInstruccion("param_"+parametro.clasePar+" "+i->str);
+										}
+										else
+										{
+											noErrores = false;
+											imprimeError(ARRAY_MISMATCH, "");
+										}
+
+									}
+									else if (i->tipo != "array")
+									{
+										codigo.anadirInstruccion("param_"+parametro.clasePar+" "+i->str);
+									}
+									else
+									{
+										noErrores = false;
+										imprimeError(ARRAY_MISMATCH, "");	
+									}
 								}
 								else
 								{
 									noErrores = false;
-									imprimeError(TIPO_MISMATCH, "", "", i->tipo, parametro.second);
+									imprimeError(TIPO_MISMATCH, "", "", i->tipo, parametro.tipoVar);
 								}
 							param++;
 						}
@@ -306,8 +380,76 @@ sentencia: variable TASSIG expresion TSEMIC
 				}
 				;
 
-variable: TIDENTIFIER {$$ = new string; *$$ = *$1;}
-				;
+variable: TIDENTIFIER 
+		{ 
+			$$ = new expresionstruct; 
+			if (!pila.tope().existeId(*$1))
+			{
+				noErrores = false;
+				imprimeError(NO_EXISTE_ID, *$1);
+				$$->tipo = "null";
+			}
+			else
+			{
+					$$->tipo = pila.tope().obtenerTipo(*$1);
+					$$->tipoElemtsArray = pila.tope().obtenerTipoElemts(*$1);
+					$$->dimensiones = pila.tope().obtenerDimensiones(*$1);
+			}
+			$$->str = *$1;
+		}
+		| TIDENTIFIER dimensiones_array
+		{
+			$$ = new expresionstruct;
+			if (!pila.tope().existeId(*$1))
+			{
+				noErrores = false;
+				imprimeError(NO_EXISTE_ID, *$1);
+				$$->tipo = "null";
+			}
+			else if (pila.tope().obtenerTipo(*$1) != "array")
+			{
+				noErrores = false;
+				imprimeError(ID_NO_ARRAY, *$1);
+				$$->tipo = "null";
+			}
+			else if ($2->size() != pila.tope().obtenerDimensiones(*$1).size())
+			{
+				noErrores = false;
+				imprimeError(DIMENSIONES_MISMATCH, *$1);
+				$$->tipo = "null";
+			}
+			else
+			{
+				bool dimensiones_correctas = true;
+				int dir = 0;
+				vector<int> d = pila.tope().obtenerDimensiones(*$1);
+				vector<int>::iterator a1 = d.begin();
+				vector<int>::iterator a2 = $2->begin();
+				dir = (*a2);
+				while (dimensiones_correctas && a1 != d.end())
+				{
+					if (*a1 <= *a2) dimensiones_correctas = false;
+					if (a1 != d.begin())
+					{
+						dir = dir*(*a1)+((*a2));
+					}
+					a1++;
+					a2++;
+				}
+				if (dimensiones_correctas)
+				{
+					$$->tipo = pila.tope().obtenerTipoElemts(*$1);
+					$$->str = *$1+"["+SSTR(dir)+"]";
+				}
+				else
+				{
+					noErrores = false;
+					imprimeError(OUT_OF_BOUNDS, *$1);
+					$$->tipo = "null";
+				}
+			}
+		}
+		;
 
 expresion: TNOT expresion
 		{
@@ -466,8 +608,64 @@ expresion: TNOT expresion
 				$$->tipo = "null";
 			}
 			else
-			{ $$->tipo = pila.tope().obtenerTipo(*$1); }
+			{
+					$$->tipo = pila.tope().obtenerTipo(*$1);
+					$$->tipoElemtsArray = pila.tope().obtenerTipoElemts(*$1);
+					$$->dimensiones = pila.tope().obtenerDimensiones(*$1);
+			}
 			$$->str = *$1;
+		}
+		| TIDENTIFIER dimensiones_array
+		{
+			$$ = new expresionstruct;
+			if (!pila.tope().existeId(*$1))
+			{
+				noErrores = false;
+				imprimeError(NO_EXISTE_ID, *$1);
+				$$->tipo = "null";
+			}
+			else if (pila.tope().obtenerTipo(*$1) != "array")
+			{
+				noErrores = false;
+				imprimeError(ID_NO_ARRAY, *$1);
+				$$->tipo = "null";
+			}
+			else if ($2->size() != pila.tope().obtenerDimensiones(*$1).size())
+			{
+				noErrores = false;
+				imprimeError(DIMENSIONES_MISMATCH, *$1);
+				$$->tipo = "null";
+			}
+			else
+			{
+				bool dimensiones_correctas = true;
+				int dir = 0;
+				vector<int> d = pila.tope().obtenerDimensiones(*$1);
+				vector<int>::iterator a1 = d.begin();
+				vector<int>::iterator a2 = $2->begin();
+				dir = (*a2);
+				while (dimensiones_correctas && a1 != d.end())
+				{
+					if (*a1 <= *a2) dimensiones_correctas = false;
+					if (a1 != d.begin())
+					{
+						dir = dir*(*a1)+((*a2));
+					}
+					a1++;
+					a2++;
+				}
+				if (dimensiones_correctas)
+				{
+					$$->tipo = pila.tope().obtenerTipoElemts(*$1);
+					$$->str = *$1+"["+SSTR(dir)+"]";
+				}
+				else
+				{
+					noErrores = false;
+					imprimeError(OUT_OF_BOUNDS, *$1);
+					$$->tipo = "null";
+				}
+			}
 		}
 		| TINTEGER { $$ = new expresionstruct; $$->str = *$1; $$->tipo = "int";}
 		| TDOUBLE { $$ = new expresionstruct; $$->str = *$1; $$->tipo = "real";}
@@ -514,4 +712,11 @@ vector<int> *unir(vector<int> &lis1, vector<int> &lis2) {
     }
 
     return nueva;
+}
+int tamano_total(vector<int> &lis){
+	int tam_total = 1;
+	for (vector<int>::iterator i = lis.begin(); i != lis.end(); i++) {
+      tam_total = tam_total*(*i);
+    }
+	return tam_total;
 }

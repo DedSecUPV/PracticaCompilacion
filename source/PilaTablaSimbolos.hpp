@@ -63,9 +63,10 @@ public:
 	 * al procedimiento que se está declarando).
 	 */
 	void anadirParametro(std::string proc, std::string idVar, std::string clasePar, std::string tipoVar);
+	void anadirParametroArray(std::string proc, std::string idVar, std::string clasePar, std::string tipoElemtsArray, std::vector<int> *dimensiones);
 
 	/* Devuelve clasePar y tipoVar del parámetro número numParametro del procedimiento id. */
-	std::pair<std::string, std::string> obtenerTiposParametro(std::string id, int numParametro);
+	TablaSimbolos::ClasesParametros obtenerTiposParametro(std::string id, int numParametro);
 
 	/* Verifica que el número de argumentos del procedimiento proc es numArgs. Si no coincide
 	 * eleva una excepción. */

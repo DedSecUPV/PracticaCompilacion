@@ -11,7 +11,8 @@
  */
 class TablaSimbolos {
 
-private:
+
+public:
 
 	/**********************************/
 	/* DEFINICION DE TIPOS A UTILIZAR */
@@ -20,13 +21,22 @@ private:
 	/* tipo para expresar las clases de parámetros. Vector de pares.
 	 * Cada par guarda la información <clasePar, tipoVar> */
 
-	typedef std::vector<std::pair<std::string, std::string> > ClasesParametros;
+	typedef struct {
+		std::string clasePar;
+		std::string tipoVar;
+		std::string tipoElemtsArray;
+		std::vector<int> dimensiones;
+	} ClasesParametros;
 
+private:
 	/* Estructura para guardar la información adicional de los símbolos. */
 	typedef struct {
 		std::string tipoId; 				// variable o procedimiento
 		std::string tipoVar; 				// si es variable, su tipo (int o real)
-		ClasesParametros parametrosProc; 	// si es procedimiento, las clases de sus parámetros.
+		std::vector<ClasesParametros> parametrosProc; 	// si es procedimiento, las clases de sus parámetros.
+		std::string tipoElemtsArray;
+		std::vector<int> dimensiones;
+
 											// por ejemplo: <"in", "real"> o <"out", "int">
 	} InfoSimbolo;
 
@@ -50,18 +60,26 @@ public:
 	/* Añade un símbolo de tipo variable y su tipo (int o real). */
 	void anadirVariable(std::string id, std::string tipo);
 
+	/* Añade un símbolo de tipo array y su tipo (int o real). */
+	void anadirArray(std::string id, std::string tipo, std::vector<int> dimensiones);
+
 	/* Añade un símbolo (nombre) de tipo procedimiento.
      * La información adicional se añade mediante otros métodos. */
 	void anadirProcedimiento(std::string id);
 
 	/* Añade un parámetro y su tipo a un procedimiento ya añadido. */
 	void anadirParametro(std::string id, std::string clasePar, std::string tipoVar);
+	void anadirParametro(std::string id, std::string clasePar, std::string tipoVar, std::string tipoElemtsArray, std::vector<int> *dimensiones);
 
 	/* Obtiene el tipo de una variable ya añadida. */
 	std::string obtenerTipo(std::string id);
 
+	std::string obtenerTipoElemts(std::string id);
+
+	std::vector<int> obtenerDimensiones(std::string id);
+
 	/* Devuelve los tipos de un parámetro correspondiente a un procedimiento ya añadido: <clasePar, tipoVar>. */
-	std::pair<std::string, std::string> obtenerTiposParametro(std::string id, int numParametro);
+	ClasesParametros obtenerTiposParametro(std::string id, int numParametro);
 
 	/* Devuelve el numero de parámetros correspondiente a un procedimiento ya añadido. */
 	int numArgsProcedimiento(std::string proc);

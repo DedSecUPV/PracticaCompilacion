@@ -79,8 +79,8 @@ string PilaTablaSimbolos::obtenerTipo(string id) {
 /* obtenerTiposParametro */
 /*************************/
 
-pair<string, string> PilaTablaSimbolos::obtenerTiposParametro(string id, int numParametro) {
-	pair<string, string> tipos;
+TablaSimbolos::ClasesParametros PilaTablaSimbolos::obtenerTiposParametro(string id, int numParametro) {
+	TablaSimbolos::ClasesParametros tipos;
 
 	if (pila.empty()) {
 		throw string("Error semántico. Has intentado llamar al procedimiento " + id + " antes de declararlo.");
@@ -109,6 +109,11 @@ pair<string, string> PilaTablaSimbolos::obtenerTiposParametro(string id, int num
 void PilaTablaSimbolos::anadirParametro(string proc, string idVar, string clasePar, string tipoVar) {
 	pila.top().ambitoSuperior->st.anadirParametro(proc, clasePar, tipoVar);
 	pila.top().st.anadirVariable(idVar, tipoVar);
+}
+
+void PilaTablaSimbolos::anadirParametroArray(string proc, string idVar, string clasePar, string tipoElemtsArray, vector<int> *dimensiones) {
+	pila.top().ambitoSuperior->st.anadirParametro(proc, clasePar, "array", tipoElemtsArray, dimensiones);
+	pila.top().st.anadirArray(idVar, tipoElemtsArray, *dimensiones);
 }
 
 

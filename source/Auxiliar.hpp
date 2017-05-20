@@ -6,6 +6,8 @@ struct expresionstruct {
     vector<int> trues;
     vector<int> falses;
     string tipo;
+    string tipoElemtsArray;
+    vector<int> dimensiones;
 };
 
 #endif /* AUX_HPP_ */
