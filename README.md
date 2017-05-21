@@ -22,4 +22,4 @@ make
 ### [Problemas a solucionar](https://github.com/DeadSecUPV/PracticaCompilacion/issues)
 
 
--- Java no conpila pero esto si
+-- Java no compila pero esto si
