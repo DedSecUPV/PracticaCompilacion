@@ -1,0 +1,32 @@
+programa ejemplo
+variables a,b,c : entero;
+variables e,d : real;
+(* esto es un comentario *)
+
+{
+
+
+e = a+b;
+a = e;
+a = a<c;
+
+e = e+1;
+e = e+1.0;
+
+e = 1*(a<4);
+e = (a<4) + (a<4);
+e = a==4;
+
+si a<3 or a+4 entonces
+{
+a=a+1;
+}
+
+si a+3 entonces
+{
+a=a+1;
+}
+
+IdQueNoExiste = 1.0;
+
+}

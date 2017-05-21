@@ -1,0 +1,24 @@
+programa ejemplo
+variables a,b,c : entero;
+variables e,d : real;
+variables array1: array[5][5] of entero;
+variables array2: array[1][2] of real;
+
+(* esto es un comentario *)
+procedimiento prueba (a: in array[5][5] of entero; b: out array[1][2] of real; resul: in out entero)
+variables z,aux:entero;
+variables x: array[5] of real;
+{
+a[1][1]=z+aux;
+x[3] = x[1];
+}
+
+
+
+
+{
+
+prueba(array1,array2,b);
+prueba(array1,array2,array1[0][0]);
+
+}

@@ -1,0 +1,10 @@
+programa ejemplo
+variables a,b,c : entero;
+variables d,e : real;
+(* esto es un comentario *)
+
+
+{
+
+a = a>b;
+}

@@ -1,0 +1,19 @@
+programa ejemplo
+variables a,b,c : entero;
+variables d,e : real;
+(* esto es un comentario *)
+
+{
+
+si a+2<b-1 entonces
+{
+
+si b<c entonces
+{
+b=b+1;
+a=a-1;
+}
+
+}
+
+}

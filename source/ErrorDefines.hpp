@@ -16,5 +16,9 @@
 #define ID_NO_ARRAY 12
 #define DIMENSIONES_MISMATCH 13
 #define OUT_OF_BOUNDS 14
+#define DIV_CERO_CONST 15
+#define OP_CON_BOOL 16
+#define REF_NO_VAR 17
+#define OP_DIR_NO_INT 18
 
 #endif /* ERRORDEFINES_HPP_ */

@@ -1,0 +1,15 @@
+programa ejemplo
+variables a,b,c : entero;
+variables d,e : real;
+(* esto es un comentario *)
+
+
+{
+
+repetir {
+a = b - 1;
+d = e+1.0;
+salir si a+1>b/2;
+ } hasta a == 9*8*a-1/c ;
+
+}

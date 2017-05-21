@@ -1,0 +1,15 @@
+programa ejemplo
+variables a,b,c : entero;
+variables d,e : real;
+(* esto es un comentario *)
+
+{
+
+repetir siempre
+{
+a=a+1;
+salir si a==0;
+}
+
+
+}

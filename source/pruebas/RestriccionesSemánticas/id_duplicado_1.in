@@ -1,6 +1,6 @@
 programa ejemplo
 variables a,b,c : entero;
-variables b,c : real;
+variables a,d,e : real;
 (* esto es un comentario *)
 procedimiento sumar (x,y: in entero; resul: in out entero)
 variables aux:entero;
@@ -12,21 +12,12 @@ aux = aux - 1;
 resul = resul+1;
  } hasta aux == 0 ;
 } 
-procedimiento sumar (x: in entero; resul: in out entero)
-variables aux:entero;
-{
-aux=x;
-resul=y;
-repetir {
-aux = aux - 1;
-resul = resul+1;
- } hasta aux == 0 ;
-} 
+
 {
 leer(a); leer(b);
-d= 1/b;
-e= 1/a;
-c= c*(c*d)+e;
+d= 1.0/e;
+e= 1.0/d;
+b= a*(c*b)+a;
 escribir_linea(c*c);
-si not a+5 entonces { leer(z); }
+
 }

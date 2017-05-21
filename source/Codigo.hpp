@@ -22,6 +22,7 @@ private:
 
 	/* Clave para generar identificaciones nuevos. Cada vez que se crea un idse incrementa. */
 	int siguienteIdentificador;
+	int siguienteDir;
 
 	/* Devuelve el número correspondiente a la siguiente instrucción, para que cada instrucción tenga su referencia. */
 	int siguienteInstruccion() const;
@@ -37,6 +38,7 @@ public:
 
 	/* Crea un nuevo identificador del tipo "_t1, _t2, ...", siempre diferente. */
 	std::string nuevoId() ;
+	std::string nuevaDir() ;
 
 	/* Añade una nueva instrucción a la estructura. */
 	void anadirInstruccion(const std::string &instruccion);

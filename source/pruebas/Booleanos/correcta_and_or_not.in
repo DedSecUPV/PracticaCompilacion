@@ -1,0 +1,25 @@
+programa ejemplo
+variables a,b,c : entero;
+variables d,e : real;
+(* esto es un comentario *)
+
+
+{
+
+si a==1 or b/1+c==2 entonces
+{
+d=1.0;
+}
+
+si b*9<1 and c-1==a entonces
+{
+e=d;
+}
+
+repetir
+{
+a = a+1;
+} hasta not a<10;
+
+
+}

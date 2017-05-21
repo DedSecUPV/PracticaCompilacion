@@ -1,0 +1,19 @@
+programa ejemplo
+variables a,b,c : entero;
+variables e,d : real;
+variables array1: array[5][5] of entero;
+variables array2: array[1][2] of real;
+
+
+{
+
+array1[1][1]=3.0;
+array2[0][0]=1;
+a = array1[1][2]+3;
+
+array1[a][b] = array2[a][b];
+
+array1[1]=2;
+array2[2][a][b][c] = a+2;
+array2[2.0+1.5][e*2.0] = a+2;
+}

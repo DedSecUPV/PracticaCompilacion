@@ -1,0 +1,20 @@
+programa ejemplo
+variables a,b,c : entero;
+variables e,d : real;
+(* esto es un comentario *)
+procedimiento sumar (x,y: in entero; b: out entero; resul: in out entero)
+variables a,aux:entero;
+{
+a=x;
+}
+{
+
+sumar(a,1,1,1);
+sumar(a,1,1,1);
+sumar(a,b,c,d,e);
+sumar(1);
+sumar(a,e,b,b);
+sumar();
+ProcQueNoExiste(1,1,1,1,1,1,1,1);
+
+}

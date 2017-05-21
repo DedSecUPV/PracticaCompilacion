@@ -1,0 +1,24 @@
+programa ejemplo
+variables a,b,c : entero;
+variables d,e : real;
+(* esto es un comentario *)
+
+procedimiento sumar (x,y: in entero; resul: in out entero)
+variables aux: entero;
+{
+aux=x;
+resul=y;
+repetir {
+aux = 1 - aux;
+resul = resul+1;
+ } hasta aux == 0 ;
+} 
+
+{
+
+si a==0 entonces
+{
+a = a+1;
+}
+
+}

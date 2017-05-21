@@ -1,0 +1,25 @@
+programa ejemplo
+variables a,b,c : entero;
+variables e,d : real;
+(* esto es un comentario *)
+procedimiento sumar (x,y: in entero; b: out entero; resul: in out entero)
+variables a,aux:entero;
+{
+a=x+y;
+}
+
+
+
+procedimiento restar (x,y: in real; b: out entero; resul: in out entero)
+variables a,aux:real;
+{
+a=x-y;
+}
+
+
+{
+
+sumar(a*1+2,1,c,b);
+restar(e/1.0,1.0,c,b);
+
+}

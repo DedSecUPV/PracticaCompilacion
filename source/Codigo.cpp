@@ -9,6 +9,7 @@ using namespace std;
 
 Codigo::Codigo() {
   siguienteIdentificador = 1;
+  siguienteDir = 1;
 }
 
 
@@ -31,6 +32,11 @@ string Codigo::nuevoId() {
   return cadena.str();
 }
 
+string Codigo::nuevaDir() {
+  stringstream cadena;
+  cadena << "_dir" << siguienteDir++;
+  return cadena.str();
+}
 
 /*********************/
 /* anadirInstruccion */

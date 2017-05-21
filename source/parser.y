@@ -46,12 +46,12 @@ void imprimeError(int errno, string id, string id2 = "null", string type = "null
 			cout << "Se esperaba un "+type2+" y se ha recibido un "+type+"." << endl; break;
 		case TIPO_MISMATCH_VAR:
 			cout << "Se ha intentado asignar un "+type+" a la variable "+id+" de tipo "+type2+"." << endl; break;
-		case COMP_CON_BOOL: 
+		case COMP_CON_BOOL:
 			cout << "Se intenta realizar una comparación aritmética entre expresiones booleanas." << endl; break;
 		case COMP_SIN_BOOL: 
-			cout << "Se intenta realizar una comparación booleana entre expresiones que no son booleanas." << endl; break;
+			cout << "Se intenta realizar una operación booleana entre expresiones que no son booleanas." << endl; break;
 		case OP_TIPOS_DIST: 
-			cout << "Se ha intado operar un "+type+" con un "+type2+"." << endl; break;
+			cout << "Se ha intentado operar un "+type+" con un "+type2+"." << endl; break;
 		case NO_EXISTE_ID:
 			cout << "La variable "+id+" no existe." << endl; break;
 		case PROC_INEXISTENTE:
@@ -66,6 +66,14 @@ void imprimeError(int errno, string id, string id2 = "null", string type = "null
 			cout << "Las dimensiones del array "+id+" no coinciden con lo que se intenta acceder." << endl; break;
 		case OUT_OF_BOUNDS:
 			cout << "Acceso al array "+id+" fuera de rango." << endl; break;
+		case DIV_CERO_CONST:
+			cout << "Se realiza una división entre 0 con una constante." << endl; break;
+		case OP_CON_BOOL:
+			cout << "Se intenta realizar una operación aritmética entre expresiones booleanas." << endl; break;
+		case REF_NO_VAR:
+			cout << "La referencia "+id+" no es una variable." << endl; break;
+		case OP_DIR_NO_INT:
+			cout << "Se ha recibido una expresión no entera para la dirección a acceder del array." << endl; break;
 	}
 }
 
@@ -107,6 +115,7 @@ bool noErrores = true;
 %type <str> programa
 %type <str> declaraciones
 %type <numlist> dimensiones_array
+%type <list_e> array_acceso
 %type <list> lista_de_ident
 %type <list> resto_lista_id
 %type <str> tipo
@@ -170,6 +179,11 @@ declaraciones: {}
 dimensiones_array: TCORCHA TINTEGER TCORCHC {$$ = new vector<int>; $$->push_back(atoi($2->c_str()));}
 			| TCORCHA TINTEGER TCORCHC dimensiones_array
 			{$$ = new vector<int>; $$->push_back(atoi($2->c_str())); $$ = unir(*$$, *$4);}
+			;
+
+array_acceso: TCORCHA expresion TCORCHC {$$ = new vector<expresionstruct>; $$->push_back(*$2);}
+			| TCORCHA expresion TCORCHC array_acceso
+			{$$ = $4; $$->push_back(*$2);}
 			;
 
 lista_de_ident: TIDENTIFIER resto_lista_id
@@ -281,25 +295,44 @@ sentencia: variable TASSIG expresion TSEMIC
 			$$ = new vector<int>;}
 
 				| TSI expresion TENTONCES M TKOPEN lista_de_sentencias TKCLOSE M 
-				{codigo.completarInstrucciones($2->trues, $4);
+				{
+					if ($2->tipo != "bool")
+					{
+						noErrores = false;
+						imprimeError(TIPO_MISMATCH, "", "", $2->tipo, "bool");
+					}
+					codigo.completarInstrucciones($2->trues, $4);
 				codigo.completarInstrucciones($2->falses, $8);
 				delete $2;
 				$$ = $6;}
 
 				| TREPETIR M TKOPEN lista_de_sentencias TKCLOSE THASTA expresion TSEMIC M
-				{codigo.completarInstrucciones($7->falses, $2);
+				{
+					if ($7->tipo != "bool")
+					{
+						noErrores = false;
+						imprimeError(TIPO_MISMATCH, "", "", $7->tipo, "bool");
+					}
+					codigo.completarInstrucciones($7->falses, $2);
 				codigo.completarInstrucciones($7->trues, $9);
 				codigo.completarInstrucciones(*$4, $9);
 				$$ = new vector<int>;
 				delete $7;}
 				
 				| M TREPSIEMP TKOPEN lista_de_sentencias TKCLOSE M
-				{codigo.anadirInstruccion("goto "+$1);
+				{codigo.anadirInstruccion("goto "+SSTR($1));
 				codigo.completarInstrucciones(*$4, $6+1);
-				$$ = new vector<int>;}
+				$$ = new vector<int>;
+				delete $4;}
 
 				| TSALSI expresion TSEMIC M
-				{codigo.completarInstrucciones($2->falses, $4);
+				{
+					if ($2->tipo != "bool")
+					{
+						noErrores = false;
+						imprimeError(TIPO_MISMATCH, "", "", $2->tipo, "bool");
+					}
+					codigo.completarInstrucciones($2->falses, $4);
 				$$ = new vector<int>;
 				*$$ = $2->trues;
 				delete $2;}
@@ -353,6 +386,11 @@ sentencia: variable TASSIG expresion TSEMIC
 									}
 									else if (i->tipo != "array")
 									{
+										if(parametro.clasePar =="ref" && !i->esVAR)
+										{
+											noErrores = false;
+											imprimeError(REF_NO_VAR, i->str);
+										}
 										codigo.anadirInstruccion("param_"+parametro.clasePar+" "+i->str);
 									}
 									else
@@ -363,6 +401,7 @@ sentencia: variable TASSIG expresion TSEMIC
 								}
 								else
 								{
+									
 									noErrores = false;
 									imprimeError(TIPO_MISMATCH, "", "", i->tipo, parametro.tipoVar);
 								}
@@ -397,7 +436,7 @@ variable: TIDENTIFIER
 			}
 			$$->str = *$1;
 		}
-		| TIDENTIFIER dimensiones_array
+		| TIDENTIFIER array_acceso
 		{
 			$$ = new expresionstruct;
 			if (!pila.tope().existeId(*$1))
@@ -420,33 +459,43 @@ variable: TIDENTIFIER
 			}
 			else
 			{
-				bool dimensiones_correctas = true;
-				int dir = 0;
+				string dir, ndir;
 				vector<int> d = pila.tope().obtenerDimensiones(*$1);
 				vector<int>::iterator a1 = d.begin();
-				vector<int>::iterator a2 = $2->begin();
-				dir = (*a2);
-				while (dimensiones_correctas && a1 != d.end())
+				vector<expresionstruct>::iterator a2 = $2->end()-1;
+				dir = codigo.nuevaDir();
+				codigo.anadirInstruccion(dir+":=0");
+				$$->tipo = pila.tope().obtenerTipoElemts(*$1);
+				while (a1 != d.end())
 				{
-					if (*a1 <= *a2) dimensiones_correctas = false;
+					if (a2->tipo != "int")
+					{
+						noErrores = false;
+						imprimeError(OP_DIR_NO_INT, "");
+						$$->tipo = "error";
+					}
+					if (!a2->constante) codigo.anadirInstruccion("if "+SSTR(*a1)+" <= "+a2->str+" goto ERROR_OUT_OF_BOUNDS");
+					else
+					{
+						if((*a1) <= atoi(a2->str.c_str()))
+						{
+							noErrores = false;
+							imprimeError(OUT_OF_BOUNDS, *$1);
+						}
+					}
 					if (a1 != d.begin())
 					{
-						dir = dir*(*a1)+((*a2));
+						ndir = codigo.nuevaDir();
+						codigo.anadirInstruccion(ndir+":="+dir+"*"+SSTR(*a1));
+						dir = ndir;
 					}
+					ndir = codigo.nuevaDir();
+					codigo.anadirInstruccion(ndir+":="+dir+"+"+a2->str);
+					dir = ndir;
 					a1++;
-					a2++;
+					a2--;
 				}
-				if (dimensiones_correctas)
-				{
-					$$->tipo = pila.tope().obtenerTipoElemts(*$1);
-					$$->str = *$1+"["+SSTR(dir)+"]";
-				}
-				else
-				{
-					noErrores = false;
-					imprimeError(OUT_OF_BOUNDS, *$1);
-					$$->tipo = "null";
-				}
+				$$->str = *$1+"["+dir+"]";
 			}
 		}
 		;
@@ -461,6 +510,7 @@ expresion: TNOT expresion
 		$$ = new expresionstruct;
 		$$->trues = $2->falses;
 		$$->falses = $2->trues;
+		$$->tipo = "bool";
 		delete $2; }
 
 		| expresion TOR M expresion
@@ -486,7 +536,7 @@ expresion: TNOT expresion
 				noErrores = false;
 				imprimeError(COMP_SIN_BOOL, "");
 			}
-			codigo.completarInstrucciones($1->falses, $3);
+			codigo.completarInstrucciones($1->trues, $3);
 			$$->trues = $4->trues;
 			$$->falses = *unir($1->falses, $4->falses);
 			$$->tipo = "bool";
@@ -555,52 +605,90 @@ expresion: TNOT expresion
 
 		| expresion TSUM expresion 
 		{ $$ = new expresionstruct;
+		*$$ = makearithmetic($1->str,*$2,$3->str) ;
+		$$->tipo = $1->tipo;
 		if ($1->tipo.compare($3->tipo) != 0)
 		{
 			noErrores = false;
 			imprimeError(OP_TIPOS_DIST, "", "", $1->tipo, $3->tipo);
+			$$->tipo = "error";
 		}
-		*$$ = makearithmetic($1->str,*$2,$3->str) ;
-		$$->tipo = $1->tipo;
+		else if ($1->tipo == "bool" || $3->tipo == "bool")
+		{
+			noErrores = false;
+			imprimeError(OP_CON_BOOL, "");
+			$$->tipo = "error";
+		}
 		delete $1; delete $3; }
 
 		| expresion TRES expresion 
 		{ $$ = new expresionstruct;
+		*$$ = makearithmetic($1->str,*$2,$3->str) ;
+		$$->tipo = $1->tipo;
 		if ($1->tipo.compare($3->tipo) != 0)
 		{
 			noErrores = false;
 			imprimeError(OP_TIPOS_DIST, "", "", $1->tipo, $3->tipo);
+			$$->tipo = "error";
 		}
-		*$$ = makearithmetic($1->str,*$2,$3->str) ;
-		$$->tipo = $1->tipo;
+		else if ($1->tipo == "bool" || $3->tipo == "bool")
+		{
+			noErrores = false;
+			imprimeError(OP_CON_BOOL, "");
+			$$->tipo = "error";
+		}
 		delete $1; delete $3; }
 
 		| expresion TMUL expresion 
 		{ $$ = new expresionstruct;
+		*$$ = makearithmetic($1->str,*$2,$3->str) ;
+		$$->tipo = $1->tipo;
 		if ($1->tipo.compare($3->tipo) != 0)
 		{
 			noErrores = false;
 			imprimeError(OP_TIPOS_DIST, "", "", $1->tipo, $3->tipo);
+			$$->tipo = "error";
 		}
-		*$$ = makearithmetic($1->str,*$2,$3->str) ;
-		$$->tipo = $1->tipo;
+		else if ($1->tipo == "bool" || $3->tipo == "bool")
+		{
+			noErrores = false;
+			imprimeError(OP_CON_BOOL, "");
+			$$->tipo = "error";
+		}
 		delete $1; delete $3; }
 
 		| expresion TDIV expresion 
 		{ $$ = new expresionstruct;
+		*$$ = makearithmetic($1->str,*$2,$3->str) ;
+		$$->tipo = $1->tipo;
 		if ($1->tipo.compare($3->tipo) != 0)
 		{
 			noErrores = false;
 			imprimeError(OP_TIPOS_DIST, "", "", $1->tipo, $3->tipo);
 		}
-		codigo.anadirInstruccion("if "+$3->str+" == 0 goto ERRORDIVNULL");
-		*$$ = makearithmetic($1->str,*$2,$3->str) ;
-		$$->tipo = $1->tipo;
+		else if ($1->tipo == "bool" || $3->tipo == "bool")
+		{
+			noErrores = false;
+			imprimeError(OP_CON_BOOL, "");
+			$$->tipo = "error";
+		}
+		if (!$3->constante) codigo.anadirInstruccion("if "+$3->str+" == 0 goto ERRORDIVNULL");
+		else
+		{
+			if (atoi($3->str.c_str()) == 0)
+			{
+				noErrores = false;
+				imprimeError(DIV_CERO_CONST, "");
+				$$->tipo = "error";
+			}
+		}
 		delete $1; delete $3; }
 
 		| TIDENTIFIER 
 		{ 
-			$$ = new expresionstruct; 
+			$$ = new expresionstruct;
+			$$->constante = false;
+			$$->esVAR = true;
 			if (!pila.tope().existeId(*$1))
 			{
 				noErrores = false;
@@ -615,9 +703,11 @@ expresion: TNOT expresion
 			}
 			$$->str = *$1;
 		}
-		| TIDENTIFIER dimensiones_array
+		| TIDENTIFIER array_acceso
 		{
 			$$ = new expresionstruct;
+			$$->constante = false;
+			$$->esVAR = true;
 			if (!pila.tope().existeId(*$1))
 			{
 				noErrores = false;
@@ -638,37 +728,47 @@ expresion: TNOT expresion
 			}
 			else
 			{
-				bool dimensiones_correctas = true;
-				int dir = 0;
+				string dir, ndir;
 				vector<int> d = pila.tope().obtenerDimensiones(*$1);
 				vector<int>::iterator a1 = d.begin();
-				vector<int>::iterator a2 = $2->begin();
-				dir = (*a2);
-				while (dimensiones_correctas && a1 != d.end())
+				vector<expresionstruct>::iterator a2 = $2->end()-1;
+				dir = codigo.nuevaDir();
+				codigo.anadirInstruccion(dir+":=0");
+				$$->tipo = pila.tope().obtenerTipoElemts(*$1);
+				while (a1 != d.end())
 				{
-					if (*a1 <= *a2) dimensiones_correctas = false;
+					if (a2->tipo != "int")
+					{
+						noErrores = false;
+						imprimeError(OP_DIR_NO_INT, "");
+						$$->tipo = "error";
+					}
+					if (!a2->constante) codigo.anadirInstruccion("if "+SSTR(*a1)+" <= "+a2->str+" goto ERROR_OUT_OF_BOUNDS");
+					else
+					{
+						if((*a1) <= atoi(a2->str.c_str()))
+						{
+							noErrores = false;
+							imprimeError(OUT_OF_BOUNDS, *$1);
+						}
+					}
 					if (a1 != d.begin())
 					{
-						dir = dir*(*a1)+((*a2));
+						ndir = codigo.nuevaDir();
+						codigo.anadirInstruccion(ndir+":="+dir+"*"+SSTR(*a1));
+						dir = ndir;
 					}
+					ndir = codigo.nuevaDir();
+					codigo.anadirInstruccion(ndir+":="+dir+"+"+a2->str);
+					dir = ndir;
 					a1++;
-					a2++;
+					a2--;
 				}
-				if (dimensiones_correctas)
-				{
-					$$->tipo = pila.tope().obtenerTipoElemts(*$1);
-					$$->str = *$1+"["+SSTR(dir)+"]";
-				}
-				else
-				{
-					noErrores = false;
-					imprimeError(OUT_OF_BOUNDS, *$1);
-					$$->tipo = "null";
-				}
+				$$->str = *$1+"["+dir+"]";
 			}
 		}
-		| TINTEGER { $$ = new expresionstruct; $$->str = *$1; $$->tipo = "int";}
-		| TDOUBLE { $$ = new expresionstruct; $$->str = *$1; $$->tipo = "real";}
+		| TINTEGER { $$ = new expresionstruct; $$->str = *$1; $$->constante = true; $$->esVAR = false; $$->tipo = "int";}
+		| TDOUBLE { $$ = new expresionstruct; $$->str = *$1; $$->constante = true; $$->esVAR = false; $$->tipo = "real";}
 		| TPOPEN expresion TPCLOSE {$$ = $2;}
 		;
 
@@ -698,6 +798,8 @@ expresionstruct makecomparison(std::string &s1, std::string &s2, std::string &s3
 expresionstruct makearithmetic(std::string &s1, std::string &s2, std::string &s3) {
 	expresionstruct tmp; 
 	tmp.str = codigo.nuevoId();
+	tmp.constante = false;
+	tmp.esVAR = false;
 	codigo.anadirInstruccion(tmp.str + ":=" + s1 + s2 + s3) ;
 	return tmp;
 }
