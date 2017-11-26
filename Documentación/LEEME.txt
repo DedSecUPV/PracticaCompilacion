@@ -1,0 +1,14 @@
+Nombre del grupo: DedSec
+
+Miembros del grupo:
+	Andoni Rivera (arivera015@ikasle.ehu.eus)
+	Iker García (igarcia945@ikasle.ehu.eus)
+	Eritz Yerga (eyerga001@ikasle.ehu.eus)
+
+Cómo compilar:
+	Navegar a la carpeta source y ejecutar el comando "make".
+	Para limpiar los archivos para recompilar, ejecutar el comando "make clean".
+
+Cómo ejecutar:
+	En la carpeta sorce, ejecutar "./parser".
+	Para introducir un archivo al programa, ejecutar con "./parser < " seguido de la ruta al archivo.
